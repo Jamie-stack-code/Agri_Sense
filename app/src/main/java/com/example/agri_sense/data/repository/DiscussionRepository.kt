@@ -31,6 +31,8 @@ class DiscussionRepository @Inject constructor(private val discussionDao: Discus
 
     suspend fun likeDiscussion(id: String) = discussionDao.incrementLikes(id)
 
+    suspend fun addComment(id: String, comment: String) = discussionDao.addComment(id, comment)
+
     suspend fun seedIfEmpty() {
         if (discussionDao.getCount() > 0) return
         val now = System.currentTimeMillis()

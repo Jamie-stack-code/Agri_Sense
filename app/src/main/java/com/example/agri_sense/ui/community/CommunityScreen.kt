@@ -44,8 +44,11 @@ fun CommunityScreen(
     var selectedTab by remember { mutableStateOf("Community Feed") }
     var showAskExpertModal by remember { mutableStateOf(false) }
     var expertQuestion by remember { mutableStateOf("") }
+    var activeCommentPostId by remember { mutableStateOf<String?>(null) }
+    var userComment by remember { mutableStateOf("") }
     val isEnglish = language == "English"
     val coroutineScope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val viewModel: CommunityViewModel = hiltViewModel()
     val discussions by viewModel.filteredDiscussions.collectAsState()
@@ -213,14 +216,25 @@ fun CommunityScreen(
                     }
                     discussions.forEach { disc ->
                         PremiumPostCard(
+                            id = disc.id,
                             author = disc.authorName,
                             location = disc.authorDistrict,
-                            time = getRelativeTime(disc.timestamp),
-                            content = if (isEnglish) disc.question else disc.questionChichewa.ifEmpty { disc.question },
+                            time = getRelativeTime(disc.postedAt),
+                            content = disc.question,
                             likes = disc.likes,
                             comments = disc.replies,
                             isExpertVerified = disc.expertAnswer.isNotEmpty(),
-                            expertResponse = disc.expertAnswer.ifEmpty { null }
+                            expertResponse = disc.expertAnswer.ifEmpty { null },
+                            onLike = { viewModel.likeDiscussion(it) },
+                            onComment = { activeCommentPostId = it },
+                            onShare = { text ->
+                                val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(android.content.Intent.EXTRA_SUBJECT, "Agri-Sense Discussion")
+                                    putExtra(android.content.Intent.EXTRA_TEXT, text)
+                                }
+                                context.startActivity(android.content.Intent.createChooser(intent, "Share via"))
+                            }
                         )
                     }
                 }
@@ -341,6 +355,44 @@ fun CommunityScreen(
                 }
             }
         }
+
+        if (activeCommentPostId != null) {
+            AlertDialog(
+                onDismissRequest = { activeCommentPostId = null },
+                containerColor = Color.White,
+                shape = RoundedCornerShape(24.dp),
+                title = { Text(if (isEnglish) "Add Comment" else "Yankhani", fontWeight = FontWeight.ExtraBold, color = PremiumDarkGreen) },
+                text = {
+                    OutlinedTextField(
+                        value = userComment,
+                        onValueChange = { userComment = it },
+                        modifier = Modifier.fillMaxWidth().height(100.dp),
+                        placeholder = { Text(if (isEnglish) "Write your response..." else "Lembani yankho lanu...") },
+                        shape = RoundedCornerShape(16.dp),
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PremiumDarkGreen)
+                    )
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            if (userComment.isNotBlank()) {
+                                viewModel.addComment(activeCommentPostId!!, userComment)
+                                activeCommentPostId = null
+                                userComment = ""
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = PremiumDarkGreen)
+                    ) {
+                        Text(if (isEnglish) "Post" else "Tumizani")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { activeCommentPostId = null }) {
+                        Text(if (isEnglish) "Cancel" else "Letsani", color = Color.Gray)
+                    }
+                }
+            )
+        }
     }
 }
 
@@ -418,6 +470,7 @@ fun PremiumCommunityActionCard(
 
 @Composable
 fun PremiumPostCard(
+    id: String,
     author: String,
     location: String,
     time: String,
@@ -425,7 +478,10 @@ fun PremiumPostCard(
     likes: Int,
     comments: Int,
     isExpertVerified: Boolean = false,
-    expertResponse: String? = null
+    expertResponse: String? = null,
+    onLike: (String) -> Unit,
+    onComment: (String) -> Unit,
+    onShare: (String) -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -479,17 +535,35 @@ fun PremiumPostCard(
             HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = Color(0xFFF0F0F0))
             
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Outlined.ThumbUp, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(18.dp))
+                // Like Button
+                Row(
+                    modifier = Modifier.clickable { onLike(id) }.padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Outlined.ThumbUp, contentDescription = null, tint = PremiumDarkGreen, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("$likes", color = OnSurfaceSubtle, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("$likes", color = PremiumDarkGreen, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 }
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                
+                // Comment Button
+                Row(
+                    modifier = Modifier.clickable { onComment(id) }.padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Icon(Icons.Outlined.ChatBubbleOutline, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("$comments", color = OnSurfaceSubtle, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 }
-                Icon(Icons.Outlined.Share, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(18.dp))
+                
+                // Share Button
+                Row(
+                    modifier = Modifier.clickable { onShare("Check out this discussion on Agri-Sense: \"$content\" - by $author") }.padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Outlined.Share, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Share", color = OnSurfaceSubtle, fontWeight = FontWeight.Medium, fontSize = 14.sp)
+                }
             }
         }
     }

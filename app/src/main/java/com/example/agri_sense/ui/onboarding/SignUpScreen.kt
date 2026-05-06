@@ -22,9 +22,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.agri_sense.ui.theme.*
+import com.example.agri_sense.ui.components.AgriSenseLogo
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,18 +41,28 @@ fun SignUpScreen(
     var passwordVisible by remember { mutableStateOf(false) }
     var countryCode by remember { mutableStateOf("+265") }
     var expandedCountry by remember { mutableStateOf(false) }
+    var showOtpStep by remember { mutableStateOf(false) }
+    var otpCode by remember { mutableStateOf("") }
+    var isVerifyingOtp by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val generatedOtp = remember { "4829" } // Static for demo purposes
     
     val hasMinLength = password.length >= 8
     val hasUppercase = password.any { it.isUpperCase() }
     val hasNumber = password.any { it.isDigit() }
     val isPasswordStrong = hasMinLength && hasUppercase && hasNumber
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(SurfaceLight)
-            .verticalScroll(rememberScrollState())
-    ) {
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .background(SurfaceLight)
+                .verticalScroll(rememberScrollState())
+        ) {
         // Hero Header
         Box(
             modifier = Modifier
@@ -70,14 +83,10 @@ fun SignUpScreen(
                     modifier = Modifier.size(80.dp),
                     shadowElevation = 16.dp
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Default.Eco,
-                            contentDescription = "Agri-Sense Logo",
-                            tint = PremiumDarkGreen,
-                            modifier = Modifier.size(48.dp)
-                        )
-                    }
+                    AgriSenseLogo(
+                        size = 48.dp,
+                        tint = PremiumDarkGreen
+                    )
                 }
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
@@ -107,8 +116,73 @@ fun SignUpScreen(
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
             Column(modifier = Modifier.padding(24.dp)) {
-                
-                // Phone Number
+                if (showOtpStep) {
+                    // --- OTP Verification Step ---
+                    Text(
+                        text = "Verify Your Phone",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = PremiumDarkGreen,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    Text(
+                        text = "We've sent a 4-digit code to $countryCode$phone via SMS.",
+                        fontSize = 14.sp,
+                        color = OnSurfaceSubtle,
+                        modifier = Modifier.padding(bottom = 24.dp)
+                    )
+
+                    OutlinedTextField(
+                        value = otpCode,
+                        onValueChange = { if (it.length <= 4) otpCode = it },
+                        placeholder = { Text("0 0 0 0", color = OnSurfaceSubtle, fontSize = 24.sp, letterSpacing = 8.sp, textAlign = TextAlign.Center) },
+                        modifier = Modifier.fillMaxWidth().height(80.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = premiumTextFieldColors(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center, fontSize = 24.sp, letterSpacing = 8.sp, fontWeight = FontWeight.Bold)
+                    )
+
+                    Spacer(modifier = Modifier.height(32.dp))
+
+                    Button(
+                        onClick = {
+                            isVerifyingOtp = true
+                            coroutineScope.launch {
+                                kotlinx.coroutines.delay(1500) // Simulate network/SMS verification
+                                isVerifyingOtp = false
+                                onSignUpSuccess()
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                            .shadow(8.dp, RoundedCornerShape(28.dp), spotColor = PremiumDarkGreen),
+                        colors = ButtonDefaults.buttonColors(containerColor = PremiumDarkGreen, disabledContainerColor = Color.LightGray),
+                        shape = RoundedCornerShape(28.dp),
+                        enabled = otpCode.length == 4 && otpCode == generatedOtp && !isVerifyingOtp
+                    ) {
+                        if (isVerifyingOtp) {
+                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text("Verifying...", color = Color.White, fontWeight = FontWeight.Bold)
+                        } else {
+                            Text("Confirm & Create Account", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Resend Code",
+                        color = PremiumGold,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.align(Alignment.CenterHorizontally).clickable { otpCode = "" }
+                    )
+
+                } else {
+                    // --- Standard Registration Step ---
+                    // Phone Number
                 PremiumFieldLabel(text = "Phone Number", icon = Icons.Default.Phone)
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     // Country Code Selector
@@ -215,7 +289,13 @@ fun SignUpScreen(
                 Spacer(modifier = Modifier.height(32.dp))
 
                 Button(
-                    onClick = onSignUpSuccess,
+                    onClick = { 
+                        showOtpStep = true 
+                        coroutineScope.launch {
+                            kotlinx.coroutines.delay(1000)
+                            snackbarHostState.showSnackbar("📨 New SMS: Your Agri-Sense code is $generatedOtp")
+                        }
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp)
@@ -225,10 +305,12 @@ fun SignUpScreen(
                     enabled = phone.isNotBlank() && isPasswordStrong && password == confirmPassword
                 ) {
                     Text(
-                        text = "Sign Up",
+                        text = "Continue via SMS",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
                 }
 
@@ -245,6 +327,8 @@ fun SignUpScreen(
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.clickable { onNavigateToSignIn() }
                     )
+                }
+                }
                 }
             }
         }

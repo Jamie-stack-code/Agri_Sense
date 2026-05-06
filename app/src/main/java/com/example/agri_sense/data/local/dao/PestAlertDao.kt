@@ -32,5 +32,8 @@ interface PestAlertDao {
     suspend fun markAllRead()
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(alert: PestAlert)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(alerts: List<PestAlert>)
 }

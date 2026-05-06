@@ -9,6 +9,7 @@ import com.example.agri_sense.data.repository.DiscussionRepository
 import com.example.agri_sense.data.repository.FarmerRepository
 import com.example.agri_sense.data.repository.PestAlertRepository
 import com.example.agri_sense.data.repository.WeatherRepository
+import com.example.agri_sense.data.repository.AiExpertRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -23,7 +24,8 @@ class HomeViewModel @Inject constructor(
     private val farmerRepository: FarmerRepository,
     private val weatherRepository: WeatherRepository,
     private val pestRepository: PestAlertRepository,
-    private val discussionRepository: DiscussionRepository
+    private val discussionRepository: DiscussionRepository,
+    private val aiExpertRepository: AiExpertRepository
 ) : ViewModel() {
 
     val farmer: StateFlow<Farmer?> = farmerRepository.farmerFlow
@@ -71,30 +73,12 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /** Simulated AI chat response based on keyword matching */
+    /** Generative AI chat response */
     fun askAgriSense(question: String, isEnglish: Boolean) {
         viewModelScope.launch {
-            val q = question.lowercase()
-            _aiResponse.value = when {
-                q.contains("maize") && q.contains("yellow") ->
-                    if (isEnglish) "Yellow leaves on maize usually indicate nitrogen deficiency. Apply CAN fertilizer at 50 kg/ha as a top-dress. Ensure adequate soil moisture before application."
-                    else "Masamba ofira a chimanga amasonyeza kuchepa kwa naitorojeni. Gwiritsani ntchito feteleza ya CAN pa 50 kg/ha."
-                q.contains("pest") || q.contains("insect") || q.contains("dzombe") ->
-                    if (isEnglish) "For pest identification, use the Soil & Camera feature to capture photos. Check the Community Pest Alerts tab for current outbreaks in your district."
-                    else "Kuti muwone mtundu wa dzombe, gwiritsani ntchito kamera. Onani Zibuyo za Tizilombo m'chigawo chanu."
-                q.contains("rain") || q.contains("weather") || q.contains("mvula") ->
-                    if (isEnglish) "Check your weather card above for today's forecast. Kasungu and Northern regions currently have storm warnings."
-                    else "Onani khadi la nyengo pamwamba. Kasungu ndi Kumpoto kuna chenjezero cha mphenzi."
-                q.contains("market") || q.contains("price") || q.contains("mtengo") ->
-                    if (isEnglish) "Current best prices: Groundnuts MK 1,520/kg (Zomba), Tobacco MK 3,200/kg (Mzuzu). Visit the Market tab for real-time prices near you."
-                    else "Mitengo yabwino: Mtedza MK 1,520/kg (Zomba), Fodya MK 3,200/kg (Mzuzu). Onani Msika kwa mitengo yeniyeni."
-                q.contains("fertilizer") || q.contains("feteleza") ->
-                    if (isEnglish) "For basal fertilizer, use NPK 23-21-0+4S at 200 kg/ha at planting. Top-dress with CAN at 200 kg/ha at 4-6 weeks after emergence."
-                    else "Kwa feteleza yoyamba, gwiritsani ntchito NPK 23-21-0+4S pa 200 kg/ha posenza. Onjezani CAN pa 200 kg/ha patatha milungu 4-6."
-                else ->
-                    if (isEnglish) "I'm Agri-Sense AI, your smart farming assistant. Ask me about crop diseases, market prices, weather, soil management, or fertilizer recommendations."
-                    else "Ine ndine Agri-Sense AI, wothandiza wanu wolima. Ndifunseni za matenda a mbewu, mitengo ya msika, nyengo, nthaka, kapena feteleza."
-            }
+            _aiResponse.value = if (isEnglish) "Consulting agricultural intelligence..." else "Ndikufunsa chidziwitso chauLimi..."
+            val response = aiExpertRepository.getAdvice(question, isEnglish)
+            _aiResponse.value = response
         }
     }
 

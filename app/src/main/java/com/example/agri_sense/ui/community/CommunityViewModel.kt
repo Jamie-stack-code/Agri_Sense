@@ -80,6 +80,10 @@ class CommunityViewModel @Inject constructor(
         viewModelScope.launch { discussionRepository.likeDiscussion(id) }
     }
 
+    fun addComment(id: String, comment: String) {
+        viewModelScope.launch { discussionRepository.addComment(id, comment) }
+    }
+
     fun markPestAlertRead(id: String) {
         viewModelScope.launch { pestRepository.markAsRead(id) }
     }

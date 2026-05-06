@@ -32,4 +32,7 @@ interface DiscussionDao {
 
     @Query("UPDATE discussions SET likes = likes + 1 WHERE id = :id")
     suspend fun incrementLikes(id: String)
+
+    @Query("UPDATE discussions SET expertAnswer = expertAnswer || '\n\nUser Comment: ' || :comment, replies = replies + 1, isAnswered = 1 WHERE id = :id")
+    suspend fun addComment(id: String, comment: String)
 }

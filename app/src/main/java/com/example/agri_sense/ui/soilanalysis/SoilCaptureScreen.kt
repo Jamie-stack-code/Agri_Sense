@@ -2,6 +2,7 @@ package com.example.agri_sense.ui.soilanalysis
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -43,6 +44,7 @@ import java.io.File
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SoilCaptureScreen(
+    viewModel: SoilViewModel,
     onPhotosCaptured: () -> Unit,
     onBack: () -> Unit
 ) {
@@ -52,6 +54,8 @@ fun SoilCaptureScreen(
     var captureStep by remember { mutableStateOf(1) } // 1: Dry, 2: Wet
     var isCapturing by remember { mutableStateOf(false) }
     var flashEnabled by remember { mutableStateOf(false) }
+    // Holds the URI of the captured dry-soil photo so we can pass both to runAnalysis
+    var dryPhotoUri by remember { mutableStateOf<Uri?>(null) }
     var hasCameraPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
@@ -251,20 +255,33 @@ fun SoilCaptureScreen(
                                     override fun onImageSaved(output: ImageCapture.OutputFileResults) {
                                         Log.d("SoilCapture", "Photo saved: ${photoFile.absolutePath}")
                                         if (captureStep == 1) {
+                                            // Store dry URI and move to wet-soil step
+                                            dryPhotoUri = Uri.fromFile(photoFile)
                                             captureStep = 2
                                             isCapturing = false
                                         } else {
+                                            // Both photos done — kick off analysis in ViewModel
+                                            val wetUri = Uri.fromFile(photoFile)
+                                            viewModel.runAnalysis(
+                                                dryPhotoUri ?: wetUri,
+                                                wetUri
+                                            )
                                             onPhotosCaptured()
                                         }
                                     }
 
                                     override fun onError(exception: ImageCaptureException) {
                                         Log.e("SoilCapture", "Photo capture failed", exception)
-                                        // Fallback: proceed anyway
+                                        // Fallback: use a dummy URI so the app doesn't crash
                                         if (captureStep == 1) {
+                                            dryPhotoUri = Uri.fromFile(photoFile)
                                             captureStep = 2
                                             isCapturing = false
                                         } else {
+                                            viewModel.runAnalysis(
+                                                dryPhotoUri ?: Uri.fromFile(photoFile),
+                                                Uri.fromFile(photoFile)
+                                            )
                                             onPhotosCaptured()
                                         }
                                     }

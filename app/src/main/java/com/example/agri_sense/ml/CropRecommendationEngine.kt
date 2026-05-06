@@ -26,7 +26,7 @@ class CropRecommendationEngine {
 
         val recommendations = mutableListOf<CropRecommendation>()
 
-        if (soilType.contains("Loam", ignoreCase = true)) {
+        if (soilType.contains("Loam", ignoreCase = true) && !soilType.contains("Sandy", ignoreCase = true)) {
             recommendations.add(
                 CropRecommendation(
                     soilAnalysisId = 0,
@@ -40,13 +40,15 @@ class CropRecommendationEngine {
                     expectedYieldKgPerHa = 4500.0
                 )
             )
+        }
+        if (soilType.contains("Sandy", ignoreCase = true)) {
             recommendations.add(
                 CropRecommendation(
                     soilAnalysisId = 0,
                     cropName = "Groundnuts (CG 7)",
                     cropNameChichewa = "Mtedza (CG 7)",
                     confidenceScore = 0.88f,
-                    reasonSummary = "Well-drained loam suits groundnut pod development. High-value market crop in Malawi.",
+                    reasonSummary = "Well-drained sandy loam suits groundnut pod development. High-value market crop in Malawi.",
                     plantingGuide = "Plant in double rows on ridges. Space 30cm x 10cm. Requires well-drained, loose soil for pod filling.",
                     fertilizerAdvice = "Apply Gypsum 400kg/ha at flowering to ensure pod filling. No nitrogen needed — legume fixes own N.",
                     wateringNeeds = "Needs 400-600mm well-distributed rainfall. Drought-tolerant at vegetative stage, not at pod fill.",
@@ -55,14 +57,14 @@ class CropRecommendationEngine {
             )
         }
 
-        if (pH < 6.0f) {
+        if (soilType.contains("Clay", ignoreCase = true) || pH < 6.0f) {
             recommendations.add(
                 CropRecommendation(
                     soilAnalysisId = 0,
                     cropName = "Tobacco (Dark Fired)",
                     cropNameChichewa = "Fodya (Dark Fired)",
-                    confidenceScore = 0.75f,
-                    reasonSummary = "Acidic soil (pH < 6.0) suits dark-fired tobacco. Major cash crop for $district.",
+                    confidenceScore = 0.90f,
+                    reasonSummary = "Heavy clay soils and lower pH suit dark-fired tobacco. Major cash crop for $district.",
                     plantingGuide = "Use certified seedlings from TAMA-registered nurseries. Transplant at 6-week seedling stage.",
                     fertilizerAdvice = "Apply Tobacco D Compound 150kg/ha at planting. Top-dress with CAN 100kg/ha at 6 weeks.",
                     wateringNeeds = "Requires 800-1200mm rainfall. Avoid waterlogging at all stages.",

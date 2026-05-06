@@ -3,6 +3,7 @@ package com.example.agri_sense.data.repository
 import com.example.agri_sense.data.local.dao.PestAlertDao
 import com.example.agri_sense.data.models.PestAlert
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -15,6 +16,16 @@ class PestAlertRepository @Inject constructor(private val pestAlertDao: PestAler
 
     suspend fun markAsRead(id: String) = pestAlertDao.markAsRead(id)
     suspend fun markAllRead() = pestAlertDao.markAllRead()
+
+    suspend fun syncWeeklyAlerts() {
+        // Simulates fetching official news and updating an outbreak alert
+        val now = System.currentTimeMillis()
+        val all = pestAlertDao.getAllAlerts().first()
+        if (all.isNotEmpty()) {
+            val alertToUpdate = all.random() // Simulate a new outbreak report
+            pestAlertDao.insert(alertToUpdate.copy(reportedAt = now, isRead = false, severityLevel = "CRITICAL"))
+        }
+    }
 
     /** Seeds real 2024-2025 Malawian pest outbreak data */
     suspend fun seedIfEmpty() {

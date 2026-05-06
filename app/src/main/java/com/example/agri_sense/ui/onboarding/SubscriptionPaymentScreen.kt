@@ -161,14 +161,23 @@ fun SubscriptionPaymentScreen(
 
             // Phone Number Input
             PremiumFieldLabel(text = "Mobile Money Number", icon = Icons.Default.PhoneIphone)
+            
+            val isValidPhone = phoneNumber.isEmpty() || (phoneNumber.length == 9 && (phoneNumber.startsWith("09") || phoneNumber.startsWith("08")))
+            
             OutlinedTextField(
                 value = phoneNumber,
-                onValueChange = { phoneNumber = it },
+                onValueChange = { if (it.length <= 9) phoneNumber = it },
                 placeholder = { Text("e.g. 099... or 088...", color = OnSurfaceSubtle) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 colors = premiumTextFieldColors(),
-                singleLine = true
+                singleLine = true,
+                isError = !isValidPhone,
+                supportingText = {
+                    if (!isValidPhone) {
+                        Text("Must be exactly 9 digits starting with 09 or 08", color = MaterialTheme.colorScheme.error)
+                    }
+                }
             )
 
             Spacer(modifier = Modifier.height(48.dp))
@@ -190,9 +199,9 @@ fun SubscriptionPaymentScreen(
                     .fillMaxWidth()
                     .height(64.dp)
                     .shadow(16.dp, RoundedCornerShape(32.dp), spotColor = PremiumDarkGreen),
-                colors = ButtonDefaults.buttonColors(containerColor = PremiumDarkGreen),
+                colors = ButtonDefaults.buttonColors(containerColor = PremiumDarkGreen, disabledContainerColor = Color.LightGray),
                 shape = RoundedCornerShape(32.dp),
-                enabled = !isProcessing && phoneNumber.isNotBlank()
+                enabled = !isProcessing && phoneNumber.length == 9 && (phoneNumber.startsWith("09") || phoneNumber.startsWith("08"))
             ) {
                 if (isProcessing) {
                     CircularProgressIndicator(color = PremiumGold, modifier = Modifier.size(24.dp))

@@ -240,7 +240,7 @@ fun ProfileSetupScreen(onSetupFree: () -> Unit, onSetupPremium: () -> Unit) {
             enabled = location.isNotBlank() && selectedCrop.isNotBlank()
         ) {
             Text(
-                text = "Finish Setup (Free 1-Month Trial)",
+                text = "Free Trial",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 color = PremiumDarkGreen
             )
@@ -263,7 +263,7 @@ fun ProfileSetupScreen(onSetupFree: () -> Unit, onSetupPremium: () -> Unit) {
             enabled = location.isNotBlank() && selectedCrop.isNotBlank()
         ) {
             Text(
-                text = "Finish Setup (Premium)",
+                text = "Premium",
                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
                 color = PremiumGold
             )

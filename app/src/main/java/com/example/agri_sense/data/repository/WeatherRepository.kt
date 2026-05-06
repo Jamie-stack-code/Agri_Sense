@@ -2,12 +2,17 @@ package com.example.agri_sense.data.repository
 
 import com.example.agri_sense.data.local.dao.WeatherAlertDao
 import com.example.agri_sense.data.models.WeatherAlert
+import com.example.agri_sense.data.network.OpenMeteoApi
 import kotlinx.coroutines.flow.Flow
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class WeatherRepository @Inject constructor(private val weatherAlertDao: WeatherAlertDao) {
+class WeatherRepository @Inject constructor(
+    private val weatherAlertDao: WeatherAlertDao,
+    private val api: OpenMeteoApi
+) {
 
     fun getWeatherForDistrict(district: String): Flow<WeatherAlert?> =
         weatherAlertDao.getLatestForDistrict(district)
@@ -16,34 +21,55 @@ class WeatherRepository @Inject constructor(private val weatherAlertDao: Weather
 
     suspend fun seedIfEmpty() {
         if (weatherAlertDao.getCount() > 0) return
-        val now = System.currentTimeMillis()
-        val dayMs = 24 * 60 * 60 * 1000L
-        weatherAlertDao.insertAll(listOf(
-            WeatherAlert("w1", "Lilongwe", "Partly Cloudy", "Mitambo Yochepa",
-                24.0, 29.0, 18.0, 62, 2.0, 14.0, 7, false,
-                "", "", now, now + dayMs, now),
-            WeatherAlert("w2", "Blantyre", "Hot and Humid", "Kutentha ndi Chinyezi",
-                28.0, 34.0, 22.0, 75, 0.0, 8.0, 9, false,
-                "", "", now, now + dayMs, now),
-            WeatherAlert("w3", "Mzuzu", "Light Rain", "Mvula Yochepa",
-                19.0, 23.0, 15.0, 82, 8.5, 20.0, 4, false,
-                "", "", now, now + dayMs, now),
-            WeatherAlert("w4", "Kasungu", "Thunderstorm Warning", "Chenjezero cha Mphenzi",
-                21.0, 26.0, 17.0, 90, 35.0, 45.0, 3, true,
-                "Severe thunderstorms expected. Do not work in open fields between 14:00-18:00.",
-                "Mphenzi yolimbikira ikudikirika. Musagwire ntchito m'minda kuchokera 14:00 mpaka 18:00.",
-                now, now + dayMs, now),
-            WeatherAlert("w5", "Zomba", "Clear and Sunny", "Dzuwa Lokongola",
-                26.0, 31.0, 20.0, 55, 0.0, 10.0, 10, false,
-                "", "", now, now + dayMs, now),
-            WeatherAlert("w6", "Salima", "Humid, Chance of Rain", "Chinyezi, Mvula Yangapo",
-                25.0, 30.0, 21.0, 80, 12.0, 18.0, 6, false,
-                "", "", now, now + dayMs, now),
-            WeatherAlert("w7", "Karonga", "Hot and Dry", "Kutentha ndi Chilala",
-                31.0, 38.0, 25.0, 40, 0.0, 22.0, 11, true,
-                "Drought risk: High temperatures and no rainfall forecast for 10 days. Water crops urgently.",
-                "Chilala chachikulu: Kutentha kwakukulu ndipo mvula siyiyembekezeka masiku 10. Podzerani madzi mosamalitsa.",
-                now, now + (10 * dayMs), now)
-        ))
+        syncWeatherForDistrict("Lilongwe")
+    }
+
+    suspend fun syncWeatherForDistrict(district: String) {
+        val coords = when (district) {
+            "Blantyre" -> Pair(-15.78, 35.00)
+            "Mzuzu" -> Pair(-11.46, 34.02)
+            else -> Pair(-13.98, 33.78) // Lilongwe default
+        }
+
+        try {
+            val response = api.getWeather(coords.first, coords.second)
+            val current = response.current
+            val daily = response.daily
+
+            val now = System.currentTimeMillis()
+            val dayMs = 24 * 60 * 60 * 1000L
+
+            val alert = WeatherAlert(
+                id = UUID.randomUUID().toString(),
+                district = district,
+                condition = "Clear", // Heuristic could be added based on other params
+                conditionChichewa = "Dzuwa Lokongola",
+                temperatureC = current.temperature_2m,
+                temperatureHigh = daily.temperature_2m_max.firstOrNull() ?: current.temperature_2m,
+                temperatureLow = daily.temperature_2m_min.firstOrNull() ?: current.temperature_2m,
+                humidity = current.relative_humidity_2m,
+                rainfallMm = 0.0,
+                windSpeedKmh = current.wind_speed_10m,
+                uvIndex = daily.uv_index_max.firstOrNull()?.toInt() ?: 6,
+                severeWarning = false,
+                warningMessage = "",
+                warningMessageChichewa = "",
+                validFrom = now,
+                validTo = now + dayMs,
+                fetchedAt = now
+            )
+            weatherAlertDao.insert(alert)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            // Fallback to mock data if API fails
+            val now = System.currentTimeMillis()
+            val dayMs = 24 * 60 * 60 * 1000L
+            weatherAlertDao.insert(WeatherAlert(
+                id = "w1", district = "Lilongwe", condition = "Partly Cloudy", conditionChichewa = "Mitambo Yochepa",
+                temperatureC = 24.0, temperatureHigh = 29.0, temperatureLow = 18.0, humidity = 62, 
+                rainfallMm = 2.0, windSpeedKmh = 14.0, uvIndex = 7, severeWarning = false,
+                warningMessage = "", warningMessageChichewa = "", validFrom = now, validTo = now + dayMs, fetchedAt = now
+            ))
+        }
     }
 }

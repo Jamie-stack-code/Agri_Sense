@@ -25,8 +25,10 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.agri_sense.ui.theme.*
+import com.example.agri_sense.ui.components.AgriSenseLogo
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,8 +44,14 @@ fun SignInScreen(
     var isVerifyingSubscription by remember { mutableStateOf(false) }
     var showForgotPasswordDialog by remember { mutableStateOf(false) }
     var resetStep by remember { mutableIntStateOf(1) }
+    var resetPhone by remember { mutableStateOf("") }
+    var resetOtp by remember { mutableStateOf("") }
+    var resetPassword by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val authViewModel: AuthViewModel = hiltViewModel()
+    val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val generatedOtp = remember { "4829" }
 
     LaunchedEffect(isVerifyingSubscription) {
         if (isVerifyingSubscription) {
@@ -55,12 +63,16 @@ fun SignInScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(SurfaceLight)
-            .verticalScroll(rememberScrollState())
-    ) {
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .background(SurfaceLight)
+                .verticalScroll(rememberScrollState())
+        ) {
         // Hero Header
         Box(
             modifier = Modifier
@@ -81,14 +93,10 @@ fun SignInScreen(
                     modifier = Modifier.size(80.dp),
                     shadowElevation = 16.dp
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Default.Eco,
-                            contentDescription = "Agri-Sense Logo",
-                            tint = PremiumDarkGreen,
-                            modifier = Modifier.size(48.dp)
-                        )
-                    }
+                    AgriSenseLogo(
+                        size = 48.dp,
+                        tint = PremiumDarkGreen
+                    )
                 }
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
@@ -215,7 +223,9 @@ fun SignInScreen(
                             text = "Sign In",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            color = Color.White,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                         )
                     }
                 }
@@ -257,48 +267,63 @@ fun SignInScreen(
                             Text("Enter your registered phone number. We will send an OTP.", color = OnSurfaceSubtle, fontSize = 14.sp)
                             Spacer(modifier = Modifier.height(16.dp))
                             OutlinedTextField(
-                                value = "",
-                                onValueChange = {},
+                                value = resetPhone,
+                                onValueChange = { resetPhone = it },
                                 placeholder = { Text("Phone Number") },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp),
-                                singleLine = true
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
                             )
                         }
                         2 -> {
                             Text("Enter the 4-digit code sent to your phone.", color = OnSurfaceSubtle, fontSize = 14.sp)
                             Spacer(modifier = Modifier.height(16.dp))
                             OutlinedTextField(
-                                value = "",
-                                onValueChange = {},
+                                value = resetOtp,
+                                onValueChange = { if (it.length <= 4) resetOtp = it },
                                 placeholder = { Text("0 0 0 0") },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp),
-                                singleLine = true
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                             )
                         }
                         else -> {
                             Text("Enter your new password.", color = OnSurfaceSubtle, fontSize = 14.sp)
                             Spacer(modifier = Modifier.height(16.dp))
                             OutlinedTextField(
-                                value = "",
-                                onValueChange = {},
+                                value = resetPassword,
+                                onValueChange = { resetPassword = it },
                                 placeholder = { Text("New Password") },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp),
-                                singleLine = true
+                                singleLine = true,
+                                visualTransformation = PasswordVisualTransformation()
                             )
                         }
                     }
                 }
             },
             confirmButton = {
+                val isEnabled = when (resetStep) {
+                    1 -> resetPhone.isNotBlank()
+                    2 -> resetOtp.length == 4 && resetOtp == generatedOtp
+                    else -> resetPassword.length >= 8
+                }
                 Button(
                     onClick = { 
+                        if (resetStep == 1) {
+                            coroutineScope.launch {
+                                kotlinx.coroutines.delay(1000)
+                                snackbarHostState.showSnackbar("📨 SMS: Your reset code is $generatedOtp")
+                            }
+                        }
                         if (resetStep < 3) resetStep++ 
                         else showForgotPasswordDialog = false 
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = PremiumDarkGreen)
+                    colors = ButtonDefaults.buttonColors(containerColor = PremiumDarkGreen),
+                    enabled = isEnabled
                 ) {
                     Text(if (resetStep == 3) "Finish Reset" else "Continue")
                 }
@@ -310,4 +335,5 @@ fun SignInScreen(
             }
         )
     }
+}
 }

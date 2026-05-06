@@ -36,6 +36,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import com.example.agri_sense.R
+import com.example.agri_sense.ui.components.AgriSenseLogo
 
 @Composable
 fun WelcomeScreen(onNavigateForward: () -> Unit) {
@@ -114,11 +115,9 @@ fun WelcomeScreen(onNavigateForward: () -> Unit) {
             ) {
                 // New Premium Text Logo
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Eco,
-                        contentDescription = "Logo Icon",
-                        tint = PremiumGold,
-                        modifier = Modifier.size(48.dp)
+                    AgriSenseLogo(
+                        size = 48.dp,
+                        tint = PremiumGold
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
@@ -139,11 +138,13 @@ fun WelcomeScreen(onNavigateForward: () -> Unit) {
                     border = BorderStroke(1.dp, PremiumGold.copy(alpha = 0.5f))
                 ) {
                     Text(
-                        text = "THE FUTURE OF AFRICAN FARMING",
+                        text = "AFRICA'S POCKET FARM ADVISOR",
                         color = PremiumGold,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 2.sp,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                     )
                 }
@@ -221,7 +222,7 @@ fun WelcomeScreen(onNavigateForward: () -> Unit) {
             Spacer(modifier = Modifier.height(16.dp))
 
             InteractiveFlipFeature(
-                title = "AI Soil Analysis",
+                title = "Soil Analysis",
                 desc = "Precision nutrient tracking and pH balancing using advanced computer vision.",
                 icon = Icons.Default.Science
             )
@@ -297,7 +298,9 @@ fun WelcomeScreen(onNavigateForward: () -> Unit) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         "Get Started",
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)

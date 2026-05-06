@@ -1,6 +1,5 @@
 package com.example.agri_sense.ui.soilanalysis
 
-import android.net.Uri
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -19,16 +18,15 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.agri_sense.ml.SoilClassifier
 import com.example.agri_sense.ui.dashboard.BottomNavBar
 import com.example.agri_sense.ui.theme.*
 
 @Composable
 fun SoilAnalysisResultScreen(
+    viewModel: SoilViewModel,
     language: String,
     onNavigateToRecommendations: () -> Unit,
     onBackToHome: () -> Unit,
@@ -36,22 +34,10 @@ fun SoilAnalysisResultScreen(
     onNavigateToCommunity: () -> Unit,
     onNavigateToProfile: () -> Unit
 ) {
-    val context = LocalContext.current
-    val classifier = remember { SoilClassifier(context) }
     val isEnglish = language == "English"
-    
-    var isLoading by remember { mutableStateOf(true) }
-    var result by remember { mutableStateOf<SoilClassifier.SoilResult?>(null) }
-    var qualityScore by remember { mutableStateOf(0) }
-
-    LaunchedEffect(Unit) {
-        val mockDry = Uri.parse("content://dry")
-        val mockWet = Uri.parse("content://wet")
-        val analysis = classifier.analyzeSoil(mockDry, mockWet)
-        result = analysis
-        qualityScore = classifier.calculateQualityScore(analysis)
-        isLoading = false
-    }
+    val isLoading by viewModel.isAnalyzing.collectAsState()
+    val result     by viewModel.latestResult.collectAsState()
+    val qualityScore by viewModel.qualityScore.collectAsState()
 
     Scaffold(
         bottomBar = {

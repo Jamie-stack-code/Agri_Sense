@@ -25,6 +25,7 @@ import com.example.agri_sense.ui.soilanalysis.CropRecommendationScreen
 import com.example.agri_sense.ui.soilanalysis.SoilAnalysisResultScreen
 import com.example.agri_sense.ui.soilanalysis.SoilCameraScreen
 import com.example.agri_sense.ui.soilanalysis.SoilCaptureScreen
+import com.example.agri_sense.ui.soilanalysis.SoilViewModel
 
 @Composable
 fun AppNavigation() {
@@ -33,6 +34,10 @@ fun AppNavigation() {
     // Shared AuthViewModel scoped to the nav graph
     val authViewModel: AuthViewModel = hiltViewModel()
     val isOnboarded by authViewModel.isOnboarded.collectAsState()
+
+    // SoilViewModel scoped to AppNavigation so SoilCaptureScreen and
+    // SoilAnalysisResultScreen share the same ViewModel instance
+    val soilViewModel: SoilViewModel = hiltViewModel()
 
     // Language state — sourced from authViewModel / DataStore in future iteration
     var selectedLanguage by remember { mutableStateOf("English") }
@@ -130,7 +135,9 @@ fun AppNavigation() {
                 onNavigateToSoil = { navController.navigate("soil_camera") },
                 onNavigateToMarket = { navController.navigate("market") },
                 onNavigateToCommunity = { navController.navigate("community") },
-                onNavigateToRecommendations = { navController.navigate("crop_recommendations") }
+                onNavigateToRecommendations = { navController.navigate("crop_recommendations") },
+                onNavigateToPestAlerts = { navController.navigate("community") },
+                onNavigateToAskExpert = { navController.navigate("community") }
             )
         }
 
@@ -211,6 +218,7 @@ fun AppNavigation() {
 
         composable("soil_capture") {
             SoilCaptureScreen(
+                viewModel = soilViewModel,
                 onPhotosCaptured = { navController.navigate("soil_result") },
                 onBack = { navController.popBackStack() }
             )
@@ -218,6 +226,7 @@ fun AppNavigation() {
 
         composable("soil_result") {
             SoilAnalysisResultScreen(
+                viewModel = soilViewModel,
                 language = selectedLanguage,
                 onNavigateToRecommendations = { navController.navigate("crop_recommendations") },
                 onBackToHome = {

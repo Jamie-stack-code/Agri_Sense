@@ -25,6 +25,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.ui.platform.LocalContext
 import com.example.agri_sense.ui.dashboard.BottomNavBar
 import com.example.agri_sense.ui.theme.*
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -50,6 +53,7 @@ fun MarketScreen(
     val viewModel: MarketViewModel = hiltViewModel()
     val filteredPrices by viewModel.filteredPrices.collectAsState()
     val topGainers = remember(filteredPrices) { filteredPrices.sortedByDescending { it.trendPercent }.take(3) }
+    val context = LocalContext.current
 
     Scaffold(
         bottomBar = {
@@ -167,6 +171,28 @@ fun MarketScreen(
                     modifier = Modifier.fillMaxWidth().clickable { onNavigateToNearby() }
                 )
 
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Official Market News Button
+                Button(
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://fpma.fao.org/giews/fpmat4/#/dashboard/tool/domestic"))
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp)
+                        .height(56.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = PremiumGold, contentColor = PremiumDarkGreen),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Language, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(if (isEnglish) "Live FAO Market News" else "Nkhani za Msika (FAO)", fontWeight = FontWeight.Bold)
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(32.dp))
 
                 // Nearby Markets Section
@@ -255,7 +281,18 @@ fun MarketScreen(
                 },
                 confirmButton = {
                     Button(
-                        onClick = { showRouteOverlay = false },
+                        onClick = { 
+                            showRouteOverlay = false 
+                            val gmmIntentUri = Uri.parse("google.navigation:q=$targetMarket+Market+Malawi")
+                            val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
+                            mapIntent.setPackage("com.google.android.apps.maps")
+                            if (mapIntent.resolveActivity(context.packageManager) != null) {
+                                context.startActivity(mapIntent)
+                            } else {
+                                // Fallback if maps app not installed
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps/dir/?api=1&destination=$targetMarket+Market+Malawi")))
+                            }
+                        },
                         colors = ButtonDefaults.buttonColors(containerColor = PremiumDarkGreen)
                     ) {
                         Text(if (isEnglish) "Start Navigation" else "Yambani Ulendo")

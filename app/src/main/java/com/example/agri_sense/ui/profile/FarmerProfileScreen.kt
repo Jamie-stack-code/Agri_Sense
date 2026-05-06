@@ -39,6 +39,7 @@ fun FarmerProfileScreen(
     val viewModel: ProfileViewModel = hiltViewModel()
     val farmer by viewModel.farmer.collectAsState()
     val isPremium by viewModel.isPremium.collectAsState()
+    val daysRemaining by viewModel.daysRemaining.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
@@ -194,19 +195,43 @@ fun FarmerProfileScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = PremiumDarkGreen),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isPremium) Color(0xFF0D2B0F) else PremiumDarkGreen
+                    ),
                     elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                 ) {
                     Column(modifier = Modifier.padding(24.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = PremiumGold, modifier = Modifier.size(28.dp))
+                            Icon(
+                                if (isPremium) Icons.Default.WorkspacePremium else Icons.Default.VerifiedUser,
+                                contentDescription = null,
+                                tint = PremiumGold,
+                                modifier = Modifier.size(28.dp)
+                            )
                             Spacer(modifier = Modifier.width(12.dp))
-                            Text("FREE TRIAL ACTIVE", color = PremiumGold, fontWeight = FontWeight.Black, fontSize = 16.sp, letterSpacing = 1.sp)
+                            Text(
+                                if (isPremium) "⭐  PREMIUM ACTIVE" else "FREE TRIAL ACTIVE",
+                                color = PremiumGold,
+                                fontWeight = FontWeight.Black,
+                                fontSize = 16.sp,
+                                letterSpacing = 1.sp
+                            )
                         }
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text("You have 29 days left on your trial.", color = Color.White, fontSize = 16.sp)
+                        if (daysRemaining > 0) {
+                            Text(
+                                "$daysRemaining days remaining on your ${if (isPremium) "Premium" else "Free Trial"} plan.",
+                                color = Color.White, fontSize = 16.sp
+                            )
+                        } else {
+                            Text("Your plan has expired. Upgrade to continue.", color = PremiumAccentAmber, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        }
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("Upgrade to a Full Season Pass to guarantee uninterrupted access.", color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp)
+                        Text(
+                            if (isPremium) "You have full access to all Agri-Sense premium features."
+                            else "Upgrade to a Full Season Pass for unlimited access.",
+                            color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp
+                        )
                     }
                 }
             }

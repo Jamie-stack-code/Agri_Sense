@@ -1,6 +1,19 @@
 package com.example.agri_sense.ui.community
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageCaptureException
+import androidx.camera.core.Preview
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.PreviewView
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -10,6 +23,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,17 +38,48 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.agri_sense.ml.PestDetectionModel
 import com.example.agri_sense.ui.theme.*
+import kotlinx.coroutines.launch
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PestDiagnosisScreen(onBack: () -> Unit) {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val pestModel = remember { PestDetectionModel(context) }
+    val coroutineScope = rememberCoroutineScope()
     
     var isAnalyzing by remember { mutableStateOf(false) }
     var result by remember { mutableStateOf<PestDetectionModel.DetectionResult?>(null) }
+    
+    var hasCameraPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        hasCameraPermission = granted
+    }
+
+    LaunchedEffect(Unit) {
+        if (!hasCameraPermission) {
+            permissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+
+    val imageCapture = remember {
+        ImageCapture.Builder()
+            .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+            .build()
+    }
 
     Scaffold(
         containerColor = PremiumSurface,
@@ -104,18 +149,42 @@ fun PestDiagnosisScreen(onBack: () -> Unit) {
                             .background(Color.DarkGray),
                         contentAlignment = Alignment.Center
                     ) {
-                        if (isAnalyzing) {
+                        if (hasCameraPermission && !isAnalyzing) {
+                            AndroidView(
+                                factory = { ctx ->
+                                    val previewView = PreviewView(ctx).apply {
+                                        scaleType = PreviewView.ScaleType.FILL_CENTER
+                                    }
+                                    val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
+                                    cameraProviderFuture.addListener({
+                                        val cameraProvider = cameraProviderFuture.get()
+                                        val preview = Preview.Builder().build().also {
+                                            it.surfaceProvider = previewView.surfaceProvider
+                                        }
+                                        try {
+                                            cameraProvider.unbindAll()
+                                            cameraProvider.bindToLifecycle(
+                                                lifecycleOwner,
+                                                CameraSelector.DEFAULT_BACK_CAMERA,
+                                                preview,
+                                                imageCapture
+                                            )
+                                        } catch (e: Exception) {
+                                            Log.e("PestCam", "Binding failed", e)
+                                        }
+                                    }, ContextCompat.getMainExecutor(ctx))
+                                    previewView
+                                },
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        } else if (isAnalyzing) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 CircularProgressIndicator(color = PremiumGold, strokeWidth = 4.dp)
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Text("Analyzing Imagery...", color = Color.White, fontWeight = FontWeight.Bold)
                             }
                         } else {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(Icons.Default.CameraAlt, contentDescription = null, tint = Color.White.copy(alpha = 0.5f), modifier = Modifier.size(64.dp))
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Text("Camera Viewfinder", color = Color.White.copy(alpha = 0.5f), fontWeight = FontWeight.Bold)
-                            }
+                            Text("Camera Permission Required", color = Color.White)
                         }
                     }
                     
@@ -123,14 +192,35 @@ fun PestDiagnosisScreen(onBack: () -> Unit) {
                     
                     // Premium Glowing CTA
                     Button(
-                        onClick = { isAnalyzing = true },
+                        onClick = {
+                            if (!isAnalyzing && hasCameraPermission) {
+                                isAnalyzing = true
+                                val photoFile = File(context.cacheDir, "pest_${System.currentTimeMillis()}.jpg")
+                                val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
+                                imageCapture.takePicture(
+                                    outputOptions,
+                                    ContextCompat.getMainExecutor(context),
+                                    object : ImageCapture.OnImageSavedCallback {
+                                        override fun onImageSaved(output: ImageCapture.OutputFileResults) {
+                                            coroutineScope.launch(kotlinx.coroutines.Dispatchers.Main) {
+                                                result = pestModel.detectPest(Uri.fromFile(photoFile))
+                                                isAnalyzing = false
+                                            }
+                                        }
+                                        override fun onError(exception: ImageCaptureException) {
+                                            isAnalyzing = false
+                                        }
+                                    }
+                                )
+                            }
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(64.dp)
                             .shadow(16.dp, RoundedCornerShape(32.dp), spotColor = PremiumGold),
                         colors = ButtonDefaults.buttonColors(containerColor = PremiumDarkGreen),
                         shape = RoundedCornerShape(32.dp),
-                        enabled = !isAnalyzing
+                        enabled = !isAnalyzing && hasCameraPermission
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.CameraAlt, contentDescription = null, tint = if (isAnalyzing) Color.LightGray else PremiumGold)
@@ -145,15 +235,7 @@ fun PestDiagnosisScreen(onBack: () -> Unit) {
                         }
                     }
                     
-                    if (isAnalyzing) {
-                        LaunchedEffect(Unit) {
-                            // In a real app, this Uri comes from CameraX
-                            kotlinx.coroutines.delay(1500)
-                            val mockUri = Uri.parse("content://media/external/images/media/1")
-                            result = pestModel.detectPest(mockUri)
-                            isAnalyzing = false
-                        }
-                    }
+                    // Removed old LaunchedEffect simulation
                 } else {
                     val detection = result!!
                     
@@ -209,6 +291,26 @@ fun PestDiagnosisScreen(onBack: () -> Unit) {
                     Spacer(modifier = Modifier.height(16.dp))
                     
                     PremiumInfoSection(title = "Organic Alternative", content = detection.organicAlternative)
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    // Official Sites Link
+                    Button(
+                        onClick = {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.plantwise.org/KnowledgeBank/"))
+                            context.startActivity(intent)
+                        },
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.OpenInNew, contentDescription = null, tint = PremiumDarkGreen)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Verify on Plantwise Official", color = PremiumDarkGreen, fontWeight = FontWeight.Bold)
+                        }
+                    }
                     
                     Spacer(modifier = Modifier.height(40.dp))
                     
