@@ -8,7 +8,9 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.agri_sense.ui.community.CommunityScreen
 import com.example.agri_sense.ui.community.PestDiagnosisScreen
+import com.example.agri_sense.ui.dashboard.AdvisoryScreen
 import com.example.agri_sense.ui.dashboard.HomeScreen
+import com.example.agri_sense.ui.dashboard.WeatherForecastScreen
 import com.example.agri_sense.ui.market.MarketScreen
 import com.example.agri_sense.ui.market.NearbyMarketsScreen
 import com.example.agri_sense.ui.onboarding.AuthViewModel
@@ -17,6 +19,8 @@ import com.example.agri_sense.ui.onboarding.ProfileSetupScreen
 import com.example.agri_sense.ui.onboarding.SignInScreen
 import com.example.agri_sense.ui.onboarding.SignUpScreen
 import com.example.agri_sense.ui.onboarding.SubscriptionPaymentScreen
+import com.example.agri_sense.ui.onboarding.OtpVerificationScreen
+import com.example.agri_sense.ui.onboarding.SplashScreen
 import com.example.agri_sense.ui.onboarding.WelcomeScreen
 import com.example.agri_sense.ui.profile.FarmerProfileScreen
 import com.example.agri_sense.ui.profile.ManageProfileScreen
@@ -45,9 +49,16 @@ fun AppNavigation() {
     // Show nothing while checking onboarding status (null = loading)
     if (isOnboarded == null) return
 
-    val startDestination = if (isOnboarded == true) "home" else "welcome"
+    NavHost(navController = navController, startDestination = "splash") {
 
-    NavHost(navController = navController, startDestination = startDestination) {
+        composable("splash") {
+            SplashScreen(onAnimationComplete = {
+                val destination = if (isOnboarded == true) "home" else "welcome"
+                navController.navigate(destination) {
+                    popUpTo("splash") { inclusive = true }
+                }
+            })
+        }
 
         // ── Onboarding ──────────────────────────────────────────────────────────
         composable("welcome") {
@@ -93,12 +104,31 @@ fun AppNavigation() {
         ) { backStackEntry ->
             val isPremium = backStackEntry.arguments?.getBoolean("isPremium") ?: false
             SignInScreen(
-                onSignInSuccess = {
-                    // Mark as onboarded via ViewModel
+                onSignInSuccess = { phone ->
+                    navController.navigate("otp_verification?phone=$phone&isPremium=$isPremium")
+                },
+                onNavigateToSignUp = {
+                    navController.navigate("sign_up?isPremium=$isPremium")
+                }
+            )
+        }
+
+        composable(
+            "otp_verification?phone={phone}&isPremium={isPremium}",
+            arguments = listOf(
+                navArgument("phone") { defaultValue = "" },
+                navArgument("isPremium") { defaultValue = false }
+            )
+        ) { backStackEntry ->
+            val phone = backStackEntry.arguments?.getString("phone") ?: ""
+            val isPremium = backStackEntry.arguments?.getBoolean("isPremium") ?: false
+            OtpVerificationScreen(
+                phone = phone,
+                onVerifySuccess = {
                     if (isPremium) {
                         authViewModel.activatePremium()
                         navController.navigate("payment") {
-                            popUpTo("sign_in") { inclusive = true }
+                            popUpTo("welcome") { inclusive = true }
                         }
                     } else {
                         navController.navigate("home") {
@@ -106,9 +136,7 @@ fun AppNavigation() {
                         }
                     }
                 },
-                onNavigateToSignUp = {
-                    navController.navigate("sign_up?isPremium=$isPremium")
-                }
+                onBack = { navController.popBackStack() }
             )
         }
 
@@ -135,10 +163,19 @@ fun AppNavigation() {
                 onNavigateToSoil = { navController.navigate("soil_camera") },
                 onNavigateToMarket = { navController.navigate("market") },
                 onNavigateToCommunity = { navController.navigate("community") },
-                onNavigateToRecommendations = { navController.navigate("crop_recommendations") },
-                onNavigateToPestAlerts = { navController.navigate("community") },
-                onNavigateToAskExpert = { navController.navigate("community") }
+                onNavigateToRecommendations = { navController.navigate("advisory") },
+                onNavigateToPestAlerts = { navController.navigate("advisory") },
+                onNavigateToAskExpert = { navController.navigate("community") },
+                onNavigateToWeather = { navController.navigate("weather_details") }
             )
+        }
+
+        composable("advisory") {
+            AdvisoryScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable("weather_details") {
+            WeatherForecastScreen(onBack = { navController.popBackStack() })
         }
 
         composable("market") {

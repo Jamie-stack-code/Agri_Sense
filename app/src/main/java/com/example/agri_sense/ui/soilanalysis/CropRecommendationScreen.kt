@@ -109,7 +109,11 @@ fun CropRecommendationScreen(
 
             if (isLoading) {
                 Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = PremiumGold)
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(48.dp),
+                        color = PremiumGold,
+                        strokeWidth = 4.dp
+                    )
                 }
             } else {
                 LazyColumn(

@@ -204,7 +204,11 @@ fun SubscriptionPaymentScreen(
                 enabled = !isProcessing && phoneNumber.length == 9 && (phoneNumber.startsWith("09") || phoneNumber.startsWith("08"))
             ) {
                 if (isProcessing) {
-                    CircularProgressIndicator(color = PremiumGold, modifier = Modifier.size(24.dp))
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = PremiumGold,
+                        strokeWidth = 2.dp
+                    )
                     Spacer(modifier = Modifier.width(16.dp))
                     Text("Processing...", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PremiumGold)
                 } else {

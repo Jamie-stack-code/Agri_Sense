@@ -121,4 +121,7 @@ dependencies {
 
     // Generative AI (Gemini)
     implementation(libs.generativeai)
+
+    // Real-time Communication (Socket.io)
+    implementation(libs.socket.io.client)
 }

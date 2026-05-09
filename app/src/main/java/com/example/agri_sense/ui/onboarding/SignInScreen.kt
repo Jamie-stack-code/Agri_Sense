@@ -33,7 +33,7 @@ import com.example.agri_sense.ui.components.AgriSenseLogo
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SignInScreen(
-    onSignInSuccess: () -> Unit,
+    onSignInSuccess: (String) -> Unit,
     onNavigateToSignUp: () -> Unit
 ) {
     var phone by remember { mutableStateOf("") }
@@ -59,7 +59,7 @@ fun SignInScreen(
             // Update phone number in the saved farmer record
             authViewModel.updatePhone("$countryCode$phone")
             isVerifyingSubscription = false
-            onSignInSuccess()
+            onSignInSuccess("$countryCode$phone")
         }
     }
 
@@ -215,7 +215,11 @@ fun SignInScreen(
                     enabled = phone.isNotBlank() && password.isNotBlank() && !isVerifyingSubscription
                 ) {
                     if (isVerifyingSubscription) {
-                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text("Verifying Access...", color = Color.White, fontWeight = FontWeight.Bold)
                     } else {

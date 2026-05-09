@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+@theme {
+  --font-outfit: "Outfit", sans-serif;
+  --font-inter: "Inter", sans-serif;
+  
+  --color-agri-green: #2D5A27;
+  --color-agri-gold: #C4A052;
+  --color-agri-surface: #FFFFFF;
+  --color-agri-bg: #F8FAFC;
+  --color-agri-text: #0F172A;
+  --color-agri-muted: #64748B;
+}
+
+@layer base {
+  html, body, #root {
+    @apply h-full w-full overflow-x-hidden;
+  }
+  
+  body {
+    @apply font-inter bg-agri-bg text-agri-text antialiased;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-outfit tracking-tight text-agri-green;
+  }
+}
+
+.agri-card {
+  @apply bg-white border border-slate-200 shadow-sm rounded-[2rem] hover:shadow-xl hover:border-agri-gold/30 transition-all duration-300;
+}
+
+.agri-gradient {
+  background: linear-gradient(135deg, #2D5A27 0%, #1A3E17 100%);
+}
+
+.gold-badge {
+  @apply bg-agri-gold/10 text-agri-gold border border-agri-gold/20 font-black uppercase text-[10px] tracking-widest px-3 py-1 rounded-full whitespace-nowrap;
+}
+
+/* Force Table Horizontal Scroll on Mobile */
+.table-scroll {
+  @apply overflow-x-auto overflow-y-hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Custom Scrollbar for Premium Feel */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-agri-green/10 rounded-full hover:bg-agri-green/30;
+}

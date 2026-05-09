@@ -1,7 +1,11 @@
 package com.example.agri_sense.ui.dashboard
 
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,7 +41,8 @@ fun HomeScreen(
     onNavigateToCommunity: () -> Unit,
     onNavigateToRecommendations: () -> Unit,
     onNavigateToPestAlerts: () -> Unit = {},
-    onNavigateToAskExpert: () -> Unit = {}
+    onNavigateToAskExpert: () -> Unit = {},
+    onNavigateToWeather: () -> Unit = {}
 ) {
     val isEnglish = language == "English"
     val viewModel: HomeViewModel = hiltViewModel()
@@ -159,7 +164,7 @@ fun HomeScreen(
 
                     // Weather card
                     Card(
-                        Modifier.fillMaxWidth().clickable { showWeatherDetail = true },
+                        Modifier.fillMaxWidth().clickable { onNavigateToWeather() },
                         RoundedCornerShape(24.dp),
                         CardDefaults.cardColors(Color.White.copy(.1f)),
                         border = BorderStroke(1.dp, Color.White.copy(.2f)),
@@ -198,7 +203,7 @@ fun HomeScreen(
                 Spacer(Modifier.height(14.dp))
                 // Row 2
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    GradientActionCard("🌦️", if (isEnglish) "Weather" else "Nyengo", CardGradientWeather, Modifier.weight(1f)) { showWeatherDetail = true }
+                    GradientActionCard("🌦️", if (isEnglish) "Weather" else "Nyengo", CardGradientWeather, Modifier.weight(1f)) { onNavigateToWeather() }
                     GradientActionCard("📈", if (isEnglish) "Market Prices" else "Mitengo", CardGradientMarket, Modifier.weight(1f), onNavigateToMarket)
                 }
                 Spacer(Modifier.height(14.dp))

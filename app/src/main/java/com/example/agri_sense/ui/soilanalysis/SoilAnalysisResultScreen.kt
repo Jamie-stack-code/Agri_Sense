@@ -73,7 +73,11 @@ fun SoilAnalysisResultScreen(
             if (isLoading) {
                 Box(modifier = Modifier.height(400.dp), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(color = PremiumGold)
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(48.dp),
+                            color = PremiumGold,
+                            strokeWidth = 4.dp
+                        )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
                             text = if (isEnglish) "AI is analyzing soil texture..." else "AI ikuyeza nthaka yanu...",

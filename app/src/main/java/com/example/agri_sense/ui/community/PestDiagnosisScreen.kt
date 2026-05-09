@@ -23,7 +23,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -306,7 +306,7 @@ fun PestDiagnosisScreen(onBack: () -> Unit) {
                         elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.OpenInNew, contentDescription = null, tint = PremiumDarkGreen)
+                            Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, tint = PremiumDarkGreen)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Verify on Plantwise Official", color = PremiumDarkGreen, fontWeight = FontWeight.Bold)
                         }

@@ -164,7 +164,11 @@ fun SignUpScreen(
                         enabled = otpCode.length == 4 && otpCode == generatedOtp && !isVerifyingOtp
                     ) {
                         if (isVerifyingOtp) {
-                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
                             Spacer(modifier = Modifier.width(12.dp))
                             Text("Verifying...", color = Color.White, fontWeight = FontWeight.Bold)
                         } else {
