@@ -13,17 +13,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.agri_sense.ui.theme.*
 
 @Composable
-fun LanguageScreen(onLanguageSelected: (String) -> Unit) {
+fun LanguageScreen(
+    onLanguageSelected: (String) -> Unit
+) {
     var selectedLanguage by remember { mutableStateOf("English") }
 
     Column(
@@ -46,19 +48,20 @@ fun LanguageScreen(onLanguageSelected: (String) -> Unit) {
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Surface(
-                    color = Color.White.copy(alpha = 0.1f),
-                    shape = CircleShape,
-                    modifier = Modifier.size(96.dp)
+                // Using Box with background instead of Surface to avoid M3 overload ambiguity
+                Box(
+                    modifier = Modifier
+                        .size(96.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.1f)),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Default.Language,
-                            contentDescription = null,
-                            tint = PremiumGold,
-                            modifier = Modifier.size(48.dp)
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Filled.Language,
+                        contentDescription = null,
+                        tint = PremiumGold,
+                        modifier = Modifier.size(48.dp)
+                    )
                 }
                 Spacer(modifier = Modifier.height(24.dp))
                 Text(
@@ -67,18 +70,6 @@ fun LanguageScreen(onLanguageSelected: (String) -> Unit) {
                     fontWeight = FontWeight.Black,
                     color = Color.White,
                     letterSpacing = 1.sp
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = if (selectedLanguage == "English") 
-                        "Select the language you are most comfortable with using for your farm management." 
-                    else 
-                        "Sankhani chinenero chomwe mungamasuke kugwiritsa ntchito poyang'anira munda wanu.",
-                    color = Color.White.copy(alpha = 0.8f),
-                    fontSize = 15.sp,
-                    textAlign = TextAlign.Center,
-                    lineHeight = 22.sp,
-                    fontWeight = FontWeight.Medium
                 )
             }
         }
@@ -110,13 +101,12 @@ fun LanguageScreen(onLanguageSelected: (String) -> Unit) {
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Premium Glowing CTA
             Button(
                 onClick = { onLanguageSelected(selectedLanguage) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(64.dp)
-                    .shadow(16.dp, RoundedCornerShape(32.dp), spotColor = PremiumGold),
+                    .shadow(elevation = 16.dp, shape = RoundedCornerShape(32.dp), spotColor = PremiumGold),
                 colors = ButtonDefaults.buttonColors(containerColor = PremiumDarkGreen),
                 shape = RoundedCornerShape(32.dp)
             ) {
@@ -124,19 +114,9 @@ fun LanguageScreen(onLanguageSelected: (String) -> Unit) {
                     text = if (selectedLanguage == "English") "Continue" else "Pitirizani",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    letterSpacing = 1.sp
+                    color = Color.White
                 )
             }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Text(
-                text = if (selectedLanguage == "English") "You can change this anytime in settings." else "Mukhoza kusintha izi nthawi ina iliyonse muzosankha.",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
-                color = OnSurfaceSubtle
-            )
             
             Spacer(modifier = Modifier.height(32.dp))
         }
@@ -153,9 +133,9 @@ fun PremiumLanguageOption(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .clickable(enabled = true, onClick = onClick)
             .then(
-                if (isSelected) Modifier.shadow(8.dp, RoundedCornerShape(24.dp), spotColor = PremiumDarkGreen)
+                if (isSelected) Modifier.shadow(elevation = 8.dp, shape = RoundedCornerShape(24.dp), spotColor = PremiumDarkGreen)
                 else Modifier
             ),
         shape = RoundedCornerShape(24.dp),
@@ -174,19 +154,19 @@ fun PremiumLanguageOption(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(
-                    color = if (isSelected) PremiumDarkGreen else Color(0xFFF0F0F0),
-                    shape = CircleShape,
-                    modifier = Modifier.size(56.dp)
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(CircleShape)
+                        .background(if (isSelected) PremiumDarkGreen else Color(0xFFF0F0F0)),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = if (title == "English") "EN" else "CH",
-                            color = if (isSelected) PremiumGold else Color.Gray,
-                            fontWeight = FontWeight.Black,
-                            fontSize = 18.sp
-                        )
-                    }
+                    Text(
+                        text = if (title == "English") "EN" else "CH",
+                        color = if (isSelected) PremiumGold else Color.Gray,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 18.sp
+                    )
                 }
                 Spacer(modifier = Modifier.width(20.dp))
                 Column {
@@ -208,7 +188,7 @@ fun PremiumLanguageOption(
             
             if (isSelected) {
                 Icon(
-                    imageVector = Icons.Default.CheckCircle,
+                    imageVector = Icons.Filled.CheckCircle,
                     contentDescription = "Selected",
                     tint = PremiumGold,
                     modifier = Modifier.size(32.dp)

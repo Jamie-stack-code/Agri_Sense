@@ -10,7 +10,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.PhoneIphone
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -57,7 +59,7 @@ fun SubscriptionPaymentScreen(
                 shape = CircleShape,
                 modifier = Modifier.size(100.dp)
             ) {
-                Icon(Icons.Default.Check, contentDescription = null, tint = PremiumDarkGreen, modifier = Modifier.padding(20.dp))
+                Icon(Icons.Filled.Check, contentDescription = null, tint = PremiumDarkGreen, modifier = Modifier.padding(20.dp))
             }
             Spacer(modifier = Modifier.height(24.dp))
             Text("Payment Successful!", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold, color = Color.White)
@@ -69,10 +71,13 @@ fun SubscriptionPaymentScreen(
             Button(
                 onClick = onPaymentSuccess,
                 modifier = Modifier.fillMaxWidth().height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PremiumGold),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PremiumGold,
+                    contentColor = Color.White
+                ),
                 shape = RoundedCornerShape(28.dp)
             ) {
-                Text("Start Farming", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PremiumDarkGreen)
+                Text("Start Farming", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
             }
         }
         return
@@ -121,13 +126,13 @@ fun SubscriptionPaymentScreen(
                     Spacer(modifier = Modifier.height(24.dp))
                     
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = PremiumGold, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = PremiumGold, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Unlimited AI Soil Analysis", color = Color.White, fontSize = 14.sp)
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = PremiumGold, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = PremiumGold, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Real-time Market Prices", color = Color.White, fontSize = 14.sp)
                     }
@@ -160,7 +165,7 @@ fun SubscriptionPaymentScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             // Phone Number Input
-            PremiumFieldLabel(text = "Mobile Money Number", icon = Icons.Default.PhoneIphone)
+            PremiumFieldLabel(text = "Mobile Money Number", icon = Icons.Filled.PhoneIphone)
             
             val isValidPhone = phoneNumber.isEmpty() || (phoneNumber.length == 9 && (phoneNumber.startsWith("09") || phoneNumber.startsWith("08")))
             
@@ -199,7 +204,11 @@ fun SubscriptionPaymentScreen(
                     .fillMaxWidth()
                     .height(64.dp)
                     .shadow(16.dp, RoundedCornerShape(32.dp), spotColor = PremiumDarkGreen),
-                colors = ButtonDefaults.buttonColors(containerColor = PremiumDarkGreen, disabledContainerColor = Color.LightGray),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PremiumDarkGreen, 
+                    contentColor = Color.White,
+                    disabledContainerColor = Color.LightGray
+                ),
                 shape = RoundedCornerShape(32.dp),
                 enabled = !isProcessing && phoneNumber.length == 9 && (phoneNumber.startsWith("09") || phoneNumber.startsWith("08"))
             ) {
@@ -212,7 +221,7 @@ fun SubscriptionPaymentScreen(
                     Spacer(modifier = Modifier.width(16.dp))
                     Text("Processing...", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PremiumGold)
                 } else {
-                    Text("Pay MK $amountMWK Now", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PremiumGold)
+                    Text("Pay MK $amountMWK Now", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 }
             }
             
@@ -236,7 +245,7 @@ fun PaymentMethodCard(title: String, isSelected: Boolean, onClick: () -> Unit, m
             Text(title, fontWeight = FontWeight.Bold, color = if (isSelected) color else Color.DarkGray, fontSize = 16.sp)
             if (isSelected) {
                 Icon(
-                    Icons.Default.CheckCircle, 
+                    Icons.Filled.CheckCircle, 
                     contentDescription = null, 
                     tint = color, 
                     modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).size(16.dp)

@@ -1,4 +1,6 @@
 package com.example.agri_sense.ui.community
+ 
+import android.net.Uri
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -7,6 +9,7 @@ import com.example.agri_sense.data.models.PestAlert
 import com.example.agri_sense.data.repository.DiscussionRepository
 import com.example.agri_sense.data.repository.FarmerRepository
 import com.example.agri_sense.data.repository.PestAlertRepository
+import com.example.agri_sense.data.network.CommunityApi
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -21,11 +24,21 @@ import javax.inject.Inject
 class CommunityViewModel @Inject constructor(
     private val discussionRepository: DiscussionRepository,
     private val pestRepository: PestAlertRepository,
-    private val farmerRepository: FarmerRepository
+    private val farmerRepository: FarmerRepository,
+    private val communityApi: CommunityApi
 ) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+ 
+    private val _selectedImageUri = MutableStateFlow<Uri?>(null)
+    val selectedImageUri: StateFlow<Uri?> = _selectedImageUri.asStateFlow()
+
+    private val _farmerCount = MutableStateFlow("12,450+")
+    val farmerCount: StateFlow<String> = _farmerCount.asStateFlow()
+
+    val unreadPestCount: StateFlow<Int> = pestRepository.unreadCount
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     private val _allDiscussions = MutableStateFlow<List<Discussion>>(emptyList())
 
@@ -43,13 +56,12 @@ class CommunityViewModel @Inject constructor(
     val pestAlerts: StateFlow<List<PestAlert>> = pestRepository.allAlerts
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val unreadPestCount: StateFlow<Int> = pestRepository.unreadCount
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     init {
         viewModelScope.launch {
             pestRepository.seedIfEmpty()
             discussionRepository.seedIfEmpty()
+            fetchFarmerCount()
         }
         observeDiscussions()
     }
@@ -63,16 +75,30 @@ class CommunityViewModel @Inject constructor(
     }
 
     fun setSearchQuery(query: String) { _searchQuery.value = query }
+ 
+    fun pickImage(uri: Uri?) { _selectedImageUri.value = uri }
+ 
+    fun clearSelectedImage() { _selectedImageUri.value = null }
+
+    fun markAllAlertsAsRead() {
+        viewModelScope.launch {
+            pestRepository.markAllRead()
+        }
+    }
 
     fun postQuestion(question: String) {
         viewModelScope.launch {
             val farmer = farmerRepository.getFarmerOnce()
+            val imageUrl = _selectedImageUri.value?.toString() ?: ""
+            
             discussionRepository.postQuestion(
                 question = question,
                 authorName = farmer?.name ?: "Anonymous Farmer",
                 authorDistrict = farmer?.district ?: "Malawi",
-                authorCrop = farmer?.cropsGrown?.split(",")?.firstOrNull() ?: ""
+                authorCrop = farmer?.cropsGrown?.split(",")?.firstOrNull() ?: "",
+                imageUrl = imageUrl
             )
+            clearSelectedImage()
         }
     }
 
@@ -90,5 +116,16 @@ class CommunityViewModel @Inject constructor(
 
     fun markAllPestAlertsRead() {
         viewModelScope.launch { pestRepository.markAllRead() }
+    }
+
+    private fun fetchFarmerCount() {
+        viewModelScope.launch {
+            try {
+                val response = communityApi.getFarmerCount()
+                _farmerCount.value = "${java.text.NumberFormat.getInstance().format(response.count)}+"
+            } catch (e: Exception) {
+                // Keep default
+            }
+        }
     }
 }

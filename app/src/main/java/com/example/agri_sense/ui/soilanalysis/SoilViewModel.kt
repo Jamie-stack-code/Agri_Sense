@@ -25,6 +25,16 @@ class SoilViewModel @Inject constructor(
     val allAnalyses: StateFlow<List<SoilAnalysis>> = soilRepository.getAllAnalyses()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    init {
+        viewModelScope.launch {
+            farmerRepository.farmerFlow.collect { farmer ->
+                farmer?.id?.let { id ->
+                    soilRepository.syncHistory(id.toString())
+                }
+            }
+        }
+    }
+
     private val _isAnalyzing = MutableStateFlow(false)
     val isAnalyzing: StateFlow<Boolean> = _isAnalyzing.asStateFlow()
 
@@ -45,6 +55,12 @@ class SoilViewModel @Inject constructor(
                 val farmerId = farmerRepository.getFarmerOnce()?.id ?: 0
                 val result = soilRepository.runAndSaveAnalysis(farmerId, dryUri, wetUri)
                 _latestResult.value = result
+                
+                // Calculate quality score for the gauge
+                var score = 70
+                if (result.properties.pH in 6.0..7.0) score += 15
+                if (result.properties.nitrogen != "Low") score += 10
+                _qualityScore.value = score.coerceAtMost(100)
             } catch (e: Exception) {
                 _error.value = "Analysis failed: ${e.message}"
             } finally {

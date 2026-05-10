@@ -17,6 +17,8 @@ class FarmerRepository @Inject constructor(private val farmerDao: FarmerDao) {
 
     suspend fun updateFarmer(farmer: Farmer) = farmerDao.updateFarmer(farmer)
 
+    suspend fun clearAll() = farmerDao.clearAll()
+
     suspend fun isOnboarded(): Boolean = farmerDao.getFarmerOnce()?.isOnboarded == true
 
     suspend fun isPremium(): Boolean {

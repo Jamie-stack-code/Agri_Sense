@@ -7,7 +7,10 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class MarketRepository @Inject constructor(private val marketDao: MarketPriceDao) {
+class MarketRepository @Inject constructor(
+    private val marketDao: MarketPriceDao,
+    private val marketApi: com.example.agri_sense.data.network.MarketApi
+) {
 
     val allPrices: Flow<List<MarketPrice>> = marketDao.getAllPrices()
 
@@ -16,6 +19,59 @@ class MarketRepository @Inject constructor(private val marketDao: MarketPriceDao
 
     fun searchPrices(query: String): Flow<List<MarketPrice>> =
         marketDao.searchPrices(query)
+
+    /** Syncs live prices from the backend and updates the local DB */
+    suspend fun syncLivePrices() {
+        try {
+            val response = marketApi.getLivePrices()
+            if (response.isSuccessful) {
+                response.body()?.let { apiPrices ->
+                    val now = System.currentTimeMillis()
+                    val localPrices = apiPrices.map {
+                        MarketPrice(
+                            id = it.id,
+                            cropName = it.cropName,
+                            cropNameChichewa = it.cropNameChichewa ?: "",
+                            pricePerKg = it.pricePerKg,
+                            priceUnit = "MWK/kg",
+                            marketName = it.marketName,
+                            district = it.district,
+                            region = "Malawi", // Backend provides location-aware data
+                            marketLocationLat = 0.0,
+                            marketLocationLng = 0.0,
+                            trendPercent = it.trend,
+                            lastUpdated = now
+                        )
+                    }
+                    marketDao.insertAll(localPrices)
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    suspend fun setPriceAlert(farmerId: String, cropName: String, targetPrice: Double) {
+        try {
+            val request = com.example.agri_sense.data.network.PriceAlertRequest(
+                farmerId = farmerId,
+                cropName = cropName,
+                targetPrice = targetPrice
+            )
+            marketApi.setPriceAlert(request)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    suspend fun getFarmerAlerts(farmerId: String): List<com.example.agri_sense.data.network.PriceAlertResponse> {
+        return try {
+            val response = marketApi.getFarmerAlerts(farmerId)
+            if (response.isSuccessful) response.body() ?: emptyList() else emptyList()
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
 
     /** Seeds realistic Malawian crop market prices on first launch */
     suspend fun seedIfEmpty() {

@@ -12,35 +12,82 @@ datasource db {
 
 model User {
   id            String    @id @default(uuid())
-  phone         String    @unique
+  phone         String?   @unique
+  email         String?   @unique
   name          String?
   role          String    @default("FARMER") // FARMER, EXPERT, ADMIN
   language      String    @default("English")
+  otpCode       String?
+  otpExpires    DateTime?
+  password      String?
   profileImage  String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  isVerified    Boolean   @default(false)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  isProfileComplete Boolean   @default(false)
+  district          String?
+  farmSize          Float?
+  cropsGrown        String?
 
   // Farmer relations
   questions     Question[] @relation("FarmerQuestions")
   subscriptions Subscription[]
-  reports       DiseaseReport[]
+  reports       DiseaseReport[] @relation("FarmerReports")
+  soilAnalyses  SoilAnalysis[]
+  priceAlerts   PriceAlert[]
 
   // Expert relations
   expertAdvisories Advisory[]
   expertReplies    Question[] @relation("ExpertReplies")
+  expertDiagnostics DiseaseReport[] @relation("ExpertDiagnostics")
+}
+
+model MarketPrice {
+  id              String   @id @default(uuid())
+  cropName        String
+  cropNameChichewa String?
+  pricePerKg      Float
+  marketName      String
+  district        String
+  trend           Float    @default(0) // -1.0 to 1.0
+  lastUpdated     DateTime @default(now())
+}
+
+model PriceAlert {
+  id              String   @id @default(uuid())
+  cropName        String
+  targetPrice     Float
+  condition       String   @default("GREATER_THAN") // GREATER_THAN, LESS_THAN
+  isActive        Boolean  @default(true)
+  farmerId        String
+  farmer          User     @relation(fields: [farmerId], references: [id])
+  createdAt       DateTime @default(now())
 }
 
 model Advisory {
-  id          String   @id @default(uuid())
-  title       String
-  content     String
-  type        String   // TEXT, AUDIO, IMAGE
-  mediaUrl    String?
-  category    String   // PEST, WEATHER, CROP, FERTILIZER
-  expertId    String
-  expert      User     @relation(fields: [expertId], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String   @id @default(uuid())
+  title           String
+  titleChichewa   String?
+  content         String
+  contentChichewa String?
+  type            String   // TEXT, AUDIO, IMAGE
+  mediaUrl        String?
+  category        String   // DISEASE_PEST, WEATHER, CROP, FERTILIZER
+  district        String?  // Optional: scope to a specific district
+  expertId        String
+  expert          User     @relation(fields: [expertId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model AdvisoryHistory {
+  id              String   @id @default(uuid())
+  advisoryId      String
+  expertId        String
+  action          String   // PUBLISHED, DRAFT_SAVED, UPDATED
+  snapshot        String   // JSON string of the advisory at that time
+  createdAt       DateTime @default(now())
 }
 
 model Question {
@@ -68,14 +115,18 @@ model Reply {
 }
 
 model DiseaseReport {
-  id          String   @id @default(uuid())
-  imageUrl    String
-  description String?
-  diagnosis   String?
-  status      String   @default("PENDING")
-  farmerId    String
-  farmer      User     @relation(fields: [farmerId], references: [id])
-  createdAt   DateTime @default(now())
+  id                  String   @id @default(uuid())
+  imageUrl            String
+  cropType            String?
+  aiDiagnosis         String?
+  expertRecommendation String?
+  status              String   @default("PENDING")
+  farmerId            String
+  farmer              User     @relation("FarmerReports", fields: [farmerId], references: [id])
+  expertId            String?
+  expert              User?    @relation("ExpertDiagnostics", fields: [expertId], references: [id])
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 }
 
 model Subscription {
@@ -89,4 +140,21 @@ model Subscription {
   farmer      User     @relation(fields: [farmerId], references: [id])
   startDate   DateTime @default(now())
   endDate     DateTime
+}
+
+model SoilAnalysis {
+  id              String   @id @default(uuid())
+  soilColor       String?
+  soilType        String?
+  nitrogen        String?
+  phosphorus      String?
+  potassium       String?
+  pH              Float?
+  recommendation  String?
+  status          String   @default("AI_COMPLETED") // AI_COMPLETED, EXPERT_PENDING, EXPERT_COMPLETED
+  expertComment   String?
+  imageUrl        String?
+  farmerId        String
+  farmer          User     @relation(fields: [farmerId], references: [id])
+  createdAt       DateTime @default(now())
 }

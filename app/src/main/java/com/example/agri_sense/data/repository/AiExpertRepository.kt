@@ -65,4 +65,23 @@ class AiExpertRepository @Inject constructor(
             aiResponse
         }
     }
+
+    suspend fun getSoilRecommendation(soilType: String, pH: Float, nitrogen: String, phosphorus: String, potassium: String, isEnglish: Boolean): String {
+        try {
+            val prompt = if (isEnglish) {
+                "As an expert agronomist in Malawi, provide a specific crop recommendation for a farmer with $soilType soil. " +
+                "Properties: pH $pH, Nitrogen $nitrogen, Phosphorus $phosphorus, Potassium $potassium. " +
+                "Suggest 2-3 suitable crops and a brief fertilizer advice. Keep it concise."
+            } else {
+                "As an expert agronomist in Malawi, provide a specific crop recommendation in Chichewa for a farmer with $soilType soil. " +
+                "Properties: pH $pH, Nitrogen $nitrogen, Phosphorus $phosphorus, Potassium $potassium. " +
+                "Suggest 2-3 suitable crops and a brief fertilizer advice in Chichewa. Keep it concise."
+            }
+            val response = generativeModel.generateContent(prompt)
+            return response.text ?: "Could not generate recommendation."
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return "Recommendation pending expert review."
+        }
+    }
 }

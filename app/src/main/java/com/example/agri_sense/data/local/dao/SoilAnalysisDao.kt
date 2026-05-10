@@ -19,5 +19,5 @@ interface SoilAnalysisDao {
     suspend fun getLatestAnalysis(): SoilAnalysis?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAnalysis(analysis: SoilAnalysis)
+    suspend fun insertAnalysis(analysis: SoilAnalysis): Long
 }

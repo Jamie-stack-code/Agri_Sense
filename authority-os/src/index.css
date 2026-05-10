@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+@theme {
+  --font-outfit: "Outfit", sans-serif;
+  --font-inter: "Inter", sans-serif;
+  
+  --color-agri-green: #2E7D32;
+  --color-agri-gold: #FFB300;
+  --color-agri-surface: #FFFFFF;
+  --color-agri-bg: #E8F0E9;
+  --color-agri-text: #1B5E20;
+  --color-agri-muted: #5D4037;
+  --color-hero-accent: #FFB300;
+  --color-hero-glow: rgba(255, 179, 0, 0.2);
+}
+
+@layer base {
+  html, body, #root {
+    @apply h-full w-full overflow-x-hidden;
+  }
+  
+  body {
+    @apply font-inter bg-agri-bg text-agri-text antialiased;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-outfit tracking-tight text-agri-green;
+  }
+}
+
+.glass-panel {
+  @apply bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl;
+}
+
+.glass-input {
+  @apply bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-hero-accent/50 focus:border-hero-accent/50 transition-all;
+}
+
+.hero-gradient {
+  background: radial-gradient(circle at top right, #1A3E17, #0a0a0a),
+              radial-gradient(circle at bottom left, #2D5A27, #0a0a0a);
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+.agri-card {
+  @apply bg-white border border-slate-200 shadow-sm rounded-[2rem] hover:shadow-xl hover:border-agri-gold/30 transition-all duration-300;
+}
+
+.agri-gradient {
+  background: linear-gradient(135deg, #2D5A27 0%, #1A3E17 100%);
+}
+
+.gold-badge {
+  @apply bg-agri-gold/10 text-agri-gold border border-agri-gold/20 font-black uppercase text-[10px] tracking-widest px-3 py-1 rounded-full whitespace-nowrap;
+}
+
+/* Force Table Horizontal Scroll on Mobile */
+.table-scroll {
+  @apply overflow-x-auto overflow-y-hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Custom Scrollbar for Premium Feel */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-agri-green/10 rounded-full hover:bg-agri-green/30;
+}

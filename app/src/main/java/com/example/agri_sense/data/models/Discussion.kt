@@ -10,6 +10,7 @@ data class Discussion(
     val authorDistrict: String,
     val authorCrop: String = "",
     val question: String,
+    val imageUrl: String = "",              // Optional attached image
     val expertAnswer: String = "",
     val likes: Int = 0,
     val replies: Int = 0,

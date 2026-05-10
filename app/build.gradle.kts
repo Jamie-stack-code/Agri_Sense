@@ -25,6 +25,12 @@ android {
         }
         val geminiApiKey = localProperties.getProperty("GEMINI_API_KEY") ?: "NO_KEY"
         buildConfigField("String", "GEMINI_API_KEY", "\"$geminiApiKey\"")
+        
+        val backendUrl = localProperties.getProperty("BACKEND_URL") ?: "http://10.0.2.2:5000/api/"
+        buildConfigField("String", "BACKEND_URL", "\"$backendUrl\"")
+        
+        val socketUrl = localProperties.getProperty("SOCKET_URL") ?: "http://10.0.2.2:5000"
+        buildConfigField("String", "SOCKET_URL", "\"$socketUrl\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -124,4 +130,7 @@ dependencies {
 
     // Real-time Communication (Socket.io)
     implementation(libs.socket.io.client)
+
+    // Image Loading
+    implementation(libs.coil.compose)
 }

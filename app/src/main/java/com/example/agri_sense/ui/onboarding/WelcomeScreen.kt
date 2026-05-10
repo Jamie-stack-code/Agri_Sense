@@ -174,7 +174,7 @@ fun WelcomeScreen(onNavigateForward: () -> Unit) {
         ) {
             Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = PremiumGold, modifier = Modifier.size(24.dp))
+                    Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = PremiumGold, modifier = Modifier.size(24.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(text = "Our Mission", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = PremiumDarkGreen)
                 }
@@ -200,9 +200,9 @@ fun WelcomeScreen(onNavigateForward: () -> Unit) {
             Spacer(modifier = Modifier.height(16.dp))
             
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                PremiumGoalCard(title = "Zero\nHunger", icon = Icons.Default.Restaurant, modifier = Modifier.weight(1f))
+                PremiumGoalCard(title = "Zero\nHunger", icon = Icons.Filled.Restaurant, modifier = Modifier.weight(1f))
                 PremiumGoalCard(title = "Max\nProsperity", icon = Icons.AutoMirrored.Filled.TrendingUp, modifier = Modifier.weight(1f))
-                PremiumGoalCard(title = "True\nSustainability", icon = Icons.Default.FilterVintage, modifier = Modifier.weight(1f))
+                PremiumGoalCard(title = "True\nSustainability", icon = Icons.Filled.FilterVintage, modifier = Modifier.weight(1f))
             }
 
             Spacer(modifier = Modifier.height(48.dp))
@@ -224,19 +224,19 @@ fun WelcomeScreen(onNavigateForward: () -> Unit) {
             InteractiveFlipFeature(
                 title = "Soil Analysis",
                 desc = "Precision nutrient tracking and pH balancing using advanced computer vision.",
-                icon = Icons.Default.Science
+                icon = Icons.Filled.Science
             )
             Spacer(modifier = Modifier.height(16.dp))
             InteractiveFlipFeature(
                 title = "Rapid Pest Diagnosis",
                 desc = "Detect over 50+ common African pests and diseases instantly with your camera.",
-                icon = Icons.Default.BugReport
+                icon = Icons.Filled.BugReport
             )
             Spacer(modifier = Modifier.height(16.dp))
             InteractiveFlipFeature(
                 title = "Market Connectivity",
                 desc = "Direct links to trusted wholesalers and real-time pricing data across districts.",
-                icon = Icons.Default.Hub
+                icon = Icons.Filled.Hub
             )
 
             Spacer(modifier = Modifier.height(48.dp))
@@ -451,7 +451,7 @@ fun PerfectFlipTestimonials() {
                 Box(modifier = Modifier.fillMaxSize()) {
                     // Premium Quotation Mark Background Overlay
                     Icon(
-                        imageVector = Icons.Default.FormatQuote,
+                        imageVector = Icons.Filled.FormatQuote,
                         contentDescription = null,
                         tint = PremiumGold.copy(alpha = 0.05f),
                         modifier = Modifier
@@ -480,7 +480,7 @@ fun PerfectFlipTestimonials() {
                             Column {
                                 Text(text = testimonial.name, fontWeight = FontWeight.ExtraBold, color = PremiumDarkGreen, fontSize = 20.sp)
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = PremiumGold, modifier = Modifier.size(14.dp))
+                                    Icon(Icons.Filled.LocationOn, contentDescription = null, tint = PremiumGold, modifier = Modifier.size(14.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(text = "Farmer from ${testimonial.location}", fontSize = 14.sp, color = OnSurfaceSubtle)
                                 }

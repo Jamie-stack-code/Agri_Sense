@@ -10,6 +10,7 @@ async function main() {
     update: {},
     create: {
       phone: '+265881000111',
+      email: 'expert@agrisense.ai',
       name: 'Dr. Andrew Mwale',
       role: 'EXPERT',
       language: 'Chichewa'
@@ -21,6 +22,7 @@ async function main() {
     update: {},
     create: {
       phone: '+265111222333',
+      email: 'admin@agrisense.ai',
       name: 'System Root',
       role: 'ADMIN'
     },

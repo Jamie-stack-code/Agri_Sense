@@ -24,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -40,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.agri_sense.ml.PestDetectionModel
 import com.example.agri_sense.ui.theme.*
@@ -48,14 +50,20 @@ import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PestDiagnosisScreen(onBack: () -> Unit) {
+fun PestDiagnosisScreen(
+    onBack: () -> Unit
+) {
+    val viewModel: PestDiagnosisViewModel = hiltViewModel()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val pestModel = remember { PestDetectionModel(context) }
     val coroutineScope = rememberCoroutineScope()
+    val isSubmitting by viewModel.isSubmitting.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
     
     var isAnalyzing by remember { mutableStateOf(false) }
     var result by remember { mutableStateOf<PestDetectionModel.DetectionResult?>(null) }
+    var capturedImageUrl by remember { mutableStateOf("") }
     
     var hasCameraPermission by remember {
         mutableStateOf(
@@ -69,12 +77,6 @@ fun PestDiagnosisScreen(onBack: () -> Unit) {
         hasCameraPermission = granted
     }
 
-    LaunchedEffect(Unit) {
-        if (!hasCameraPermission) {
-            permissionLauncher.launch(Manifest.permission.CAMERA)
-        }
-    }
-
     val imageCapture = remember {
         ImageCapture.Builder()
             .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
@@ -82,6 +84,7 @@ fun PestDiagnosisScreen(onBack: () -> Unit) {
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = PremiumSurface,
         topBar = {
             TopAppBar(
@@ -139,7 +142,7 @@ fun PestDiagnosisScreen(onBack: () -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 if (result == null) {
-                    // Glassmorphic Viewfinder
+                    // Viewfinder
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -190,7 +193,6 @@ fun PestDiagnosisScreen(onBack: () -> Unit) {
                     
                     Spacer(modifier = Modifier.height(48.dp))
                     
-                    // Premium Glowing CTA
                     Button(
                         onClick = {
                             if (!isAnalyzing && hasCameraPermission) {
@@ -203,6 +205,7 @@ fun PestDiagnosisScreen(onBack: () -> Unit) {
                                     object : ImageCapture.OnImageSavedCallback {
                                         override fun onImageSaved(output: ImageCapture.OutputFileResults) {
                                             coroutineScope.launch(kotlinx.coroutines.Dispatchers.Main) {
+                                                capturedImageUrl = Uri.fromFile(photoFile).toString()
                                                 result = pestModel.detectPest(Uri.fromFile(photoFile))
                                                 isAnalyzing = false
                                             }
@@ -234,12 +237,9 @@ fun PestDiagnosisScreen(onBack: () -> Unit) {
                             )
                         }
                     }
-                    
-                    // Removed old LaunchedEffect simulation
                 } else {
                     val detection = result!!
                     
-                    // Professional Result Card
                     Card(
                         modifier = Modifier.fillMaxWidth().shadow(12.dp, RoundedCornerShape(24.dp), spotColor = PremiumDarkGreen),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -285,6 +285,35 @@ fun PestDiagnosisScreen(onBack: () -> Unit) {
                     }
                     
                     Spacer(modifier = Modifier.height(32.dp))
+
+                    Button(
+                        onClick = {
+                            viewModel.submitAnalysis(
+                                imageUrl = capturedImageUrl,
+                                cropType = "Maize/General",
+                                aiDiagnosis = detection.pestName
+                            )
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar("Report sent to Expert Portal!")
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().height(64.dp).shadow(12.dp, RoundedCornerShape(32.dp), spotColor = PremiumGold),
+                        colors = ButtonDefaults.buttonColors(containerColor = PremiumGold),
+                        shape = RoundedCornerShape(32.dp),
+                        enabled = !isSubmitting
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (isSubmitting) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = PremiumDarkGreen)
+                            } else {
+                                Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = PremiumDarkGreen)
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text("Send to Expert Review", color = PremiumDarkGreen, fontWeight = FontWeight.Black)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(32.dp))
                     
                     PremiumInfoSection(title = "Professional Treatment Plan", content = detection.treatmentPlan)
                     
@@ -292,29 +321,8 @@ fun PestDiagnosisScreen(onBack: () -> Unit) {
                     
                     PremiumInfoSection(title = "Organic Alternative", content = detection.organicAlternative)
                     
-                    Spacer(modifier = Modifier.height(24.dp))
-                    
-                    // Official Sites Link
-                    Button(
-                        onClick = {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.plantwise.org/KnowledgeBank/"))
-                            context.startActivity(intent)
-                        },
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                        shape = RoundedCornerShape(16.dp),
-                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, tint = PremiumDarkGreen)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Verify on Plantwise Official", color = PremiumDarkGreen, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                    
                     Spacer(modifier = Modifier.height(40.dp))
                     
-                    // Premium Reset Action
                     Button(
                         onClick = { result = null },
                         modifier = Modifier

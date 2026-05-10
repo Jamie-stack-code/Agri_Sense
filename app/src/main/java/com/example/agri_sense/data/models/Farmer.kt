@@ -18,5 +18,6 @@ data class Farmer(
     val subscriptionExpiry: Long = 0L,
     val avatarUri: String = "",
     val isOnboarded: Boolean = false,
+    val isProfileComplete: Boolean = false,
     val createdAt: Long = System.currentTimeMillis()
 )

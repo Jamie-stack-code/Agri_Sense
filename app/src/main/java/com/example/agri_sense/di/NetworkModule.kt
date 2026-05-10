@@ -36,4 +36,59 @@ object NetworkModule {
             .build()
             .create(OpenMeteoApi::class.java)
     }
+
+    @Provides
+    @Singleton
+    fun provideAuthApi(okHttpClient: OkHttpClient): com.example.agri_sense.data.network.AuthApi {
+        return Retrofit.Builder()
+            .baseUrl(com.example.agri_sense.BuildConfig.BACKEND_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(com.example.agri_sense.data.network.AuthApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideIntelApi(okHttpClient: OkHttpClient): com.example.agri_sense.data.network.IntelApi {
+        return Retrofit.Builder()
+            .baseUrl(com.example.agri_sense.BuildConfig.BACKEND_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(com.example.agri_sense.data.network.IntelApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideCommunityApi(okHttpClient: OkHttpClient): com.example.agri_sense.data.network.CommunityApi {
+        return Retrofit.Builder()
+            .baseUrl(com.example.agri_sense.BuildConfig.BACKEND_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(com.example.agri_sense.data.network.CommunityApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideSoilApi(okHttpClient: OkHttpClient): com.example.agri_sense.data.network.SoilApi {
+        return Retrofit.Builder()
+            .baseUrl(com.example.agri_sense.BuildConfig.BACKEND_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(com.example.agri_sense.data.network.SoilApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideMarketApi(okHttpClient: OkHttpClient): com.example.agri_sense.data.network.MarketApi {
+        return Retrofit.Builder()
+            .baseUrl(com.example.agri_sense.BuildConfig.BACKEND_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(com.example.agri_sense.data.network.MarketApi::class.java)
+    }
 }

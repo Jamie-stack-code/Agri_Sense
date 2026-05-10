@@ -27,6 +27,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import com.example.agri_sense.ui.theme.*
 
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
+import com.example.agri_sense.data.network.DiagnosticReportResponse
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FarmerProfileScreen(
@@ -34,6 +38,7 @@ fun FarmerProfileScreen(
     onNavigateToPayment: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     onNavigateToEditProfile: () -> Unit = {},
+    onNavigateToSoilHistory: () -> Unit = {},
     onLogout: () -> Unit = {}
 ) {
     val viewModel: ProfileViewModel = hiltViewModel()
@@ -97,8 +102,17 @@ fun FarmerProfileScreen(
                             color = Color.White,
                             shadowElevation = 8.dp
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text("👨‍🌾", fontSize = 64.sp)
+                            if (farmer?.avatarUri.isNullOrEmpty()) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text("👨‍🌾", fontSize = 64.sp)
+                                }
+                            } else {
+                                AsyncImage(
+                                    model = farmer?.avatarUri,
+                                    contentDescription = "Profile Picture",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
                             }
                         }
                         Surface(
@@ -170,14 +184,77 @@ fun FarmerProfileScreen(
                 )
                 PremiumProfileInfoRow(
                     label = "Soil Health",
-                    value = "Good (Last checked 2d ago)",
-                    icon = Icons.Default.HealthAndSafety
+                    value = "View Analysis History",
+                    icon = Icons.Default.HealthAndSafety,
+                    onClick = onNavigateToSoilHistory
                 )
                 PremiumProfileInfoRow(
                     label = "Market Membership",
                     value = "$farmerDistrict Hub",
                     icon = Icons.Default.Storefront
                 )
+                
+                val alertCount by viewModel.activeAlertCount.collectAsState()
+                PremiumProfileInfoRow(
+                    label = "Price Alerts",
+                    value = if (alertCount > 0) "$alertCount Active Alerts" else "No active alerts",
+                    icon = Icons.Default.NotificationsActive
+                )
+
+                val diagnosticHistory by viewModel.diagnosticHistory.collectAsState()
+                if (diagnosticHistory.isNotEmpty()) {
+                    Text("Diagnostic History", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = PremiumDarkGreen, modifier = Modifier.padding(top = 16.dp))
+                    diagnosticHistory.forEach { report ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(20.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(20.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.BugReport, null, tint = PremiumDarkGreen, modifier = Modifier.size(24.dp))
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column {
+                                        Text(report.createdAt.substring(0, 10), fontSize = 12.sp, color = OnSurfaceSubtle)
+                                        Text(report.aiDiagnosis ?: "Field Analysis", fontWeight = FontWeight.Bold, color = PremiumDarkGreen)
+                                    }
+                                    Spacer(modifier = Modifier.weight(1f))
+                                    Surface(
+                                        color = if (report.status == "PENDING") PremiumGold.copy(alpha = 0.2f) else PremiumDarkGreen.copy(alpha = 0.1f),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Text(
+                                            report.status,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = PremiumDarkGreen
+                                        )
+                                    }
+                                }
+                                
+                                if (report.expertRecommendation != null) {
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .background(PremiumDarkGreen.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
+                                            .padding(12.dp)
+                                    ) {
+                                        Column {
+                                            Text("EXPERT RECOMMENDATION", fontSize = 10.sp, fontWeight = FontWeight.Black, color = PremiumGold)
+                                            Text(report.expertRecommendation, fontSize = 14.sp, color = PremiumDarkGreen, lineHeight = 20.sp)
+                                        }
+                                    }
+                                } else if (report.status == "PENDING") {
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Text("Awaiting expert verification...", fontSize = 13.sp, color = OnSurfaceSubtle, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -223,6 +300,21 @@ fun FarmerProfileScreen(
                                 "$daysRemaining days remaining on your ${if (isPremium) "Premium" else "Free Trial"} plan.",
                                 color = Color.White, fontSize = 16.sp
                             )
+                            if (daysRemaining <= 7) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Surface(
+                                    color = Color(0xFFFFEBEE), // Light red background
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text(
+                                        "Warning: Subscription expiring soon! Please renew to avoid losing access.",
+                                        color = Color(0xFFD32F2F), // Dark red text
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(12.dp),
+                                        fontSize = 14.sp
+                                    )
+                                }
+                            }
                         } else {
                             Text("Your plan has expired. Upgrade to continue.", color = PremiumAccentAmber, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                         }
@@ -306,9 +398,9 @@ fun PremiumStatCard(label: String, value: String, icon: ImageVector, modifier: M
 }
 
 @Composable
-fun PremiumProfileInfoRow(label: String, value: String, icon: ImageVector) {
+fun PremiumProfileInfoRow(label: String, value: String, icon: ImageVector, onClick: () -> Unit = {}) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().clickable { onClick() },
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -329,7 +421,13 @@ fun PremiumProfileInfoRow(label: String, value: String, icon: ImageVector) {
             Spacer(modifier = Modifier.width(20.dp))
             Column {
                 Text(label, fontSize = 13.sp, color = OnSurfaceSubtle, fontWeight = FontWeight.Medium)
-                Text(value, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = PremiumDarkGreen)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(value, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = PremiumDarkGreen)
+                    if (onClick != {}) {
+                        Spacer(Modifier.width(8.dp))
+                        Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = PremiumDarkGreen, modifier = Modifier.size(16.dp))
+                    }
+                }
             }
         }
     }

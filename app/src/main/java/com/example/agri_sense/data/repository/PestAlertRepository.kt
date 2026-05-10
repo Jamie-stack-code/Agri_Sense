@@ -2,13 +2,51 @@ package com.example.agri_sense.data.repository
 
 import com.example.agri_sense.data.local.dao.PestAlertDao
 import com.example.agri_sense.data.models.PestAlert
+import com.example.agri_sense.utils.SocketManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import org.json.JSONObject
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class PestAlertRepository @Inject constructor(private val pestAlertDao: PestAlertDao) {
+class PestAlertRepository @Inject constructor(
+    private val pestAlertDao: PestAlertDao,
+    private val socketManager: SocketManager
+) {
+    private val repositoryScope = CoroutineScope(Dispatchers.IO)
+
+    init {
+        observeSocketAlerts()
+    }
+
+    private fun observeSocketAlerts() {
+        socketManager.on("NEW_ADVISORY_PUBLISHED") { args ->
+            val data = args[0] as? JSONObject ?: return@on
+            if (data.optString("category") == "DISEASE_PEST") {
+                repositoryScope.launch {
+                    val alert = PestAlert(
+                        id = data.optString("id", System.currentTimeMillis().toString()),
+                        pestName = data.optString("title"),
+                        pestNameChichewa = data.optString("titleChichewa"),
+                        affectedCrops = "All Affected",
+                        outbreakDistricts = data.optString("district", "National"),
+                        severityLevel = "HIGH",
+                        description = data.optString("content"),
+                        descriptionChichewa = data.optString("contentChichewa"),
+                        recommendedAction = "Check expert portal for full guidance.",
+                        recommendedActionChichewa = "Onani malangizo onse pa expert portal.",
+                        reportedAt = System.currentTimeMillis(),
+                        isRead = false
+                    )
+                    pestAlertDao.insert(alert)
+                }
+            }
+        }
+    }
 
     val allAlerts: Flow<List<PestAlert>> = pestAlertDao.getAllAlerts()
     val unreadAlerts: Flow<List<PestAlert>> = pestAlertDao.getUnreadAlerts()

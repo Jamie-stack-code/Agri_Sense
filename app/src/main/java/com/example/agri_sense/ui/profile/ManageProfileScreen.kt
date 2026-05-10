@@ -25,6 +25,14 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.agri_sense.ui.theme.*
 
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import coil.compose.AsyncImage
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ManageProfileScreen(
@@ -33,14 +41,28 @@ fun ManageProfileScreen(
 ) {
     val viewModel: ProfileViewModel = hiltViewModel()
     val farmer by viewModel.farmer.collectAsState()
+    val context = LocalContext.current
 
     var fullName by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
     var farmSize by remember { mutableStateOf(2.5f) }
     var location by remember { mutableStateOf("") }
+    var showAvatarDialog by remember { mutableStateOf(false) }
 
     val allCrops = listOf("Maize", "Tobacco", "Groundnuts", "Soybeans", "Cassava", "Beans", "Cotton")
     val selectedCrops = remember { mutableStateListOf<String>() }
+
+    val pickMedia = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) {
+            val flag = Intent.FLAG_GRANT_READ_URI_PERMISSION
+            try {
+                context.contentResolver.takePersistableUriPermission(uri, flag)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            viewModel.updateAvatarUri(uri.toString())
+        }
+    }
 
     // Load farmer data once when available
     LaunchedEffect(farmer) {
@@ -52,6 +74,26 @@ fun ManageProfileScreen(
             selectedCrops.clear()
             selectedCrops.addAll(f.cropsGrown.split(",").map { it.trim() }.filter { it.isNotEmpty() })
         }
+    }
+
+    if (showAvatarDialog) {
+        AlertDialog(
+            onDismissRequest = { showAvatarDialog = false },
+            title = { Text("Profile Picture") },
+            text = { Text("Choose what you want to do with your profile picture.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showAvatarDialog = false
+                    pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                }) { Text("Upload New") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showAvatarDialog = false
+                    viewModel.updateAvatarUri("")
+                }) { Text("Remove") }
+            }
+        )
     }
 
     Scaffold(
@@ -89,13 +131,22 @@ fun ManageProfileScreen(
             ) {
                 Box(contentAlignment = Alignment.BottomEnd) {
                     Surface(
-                        modifier = Modifier.size(120.dp),
+                        modifier = Modifier.size(120.dp).clickable { showAvatarDialog = true },
                         shape = CircleShape,
                         color = Color.White,
                         shadowElevation = 8.dp
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text("👨‍🌾", fontSize = 60.sp)
+                        if (farmer?.avatarUri.isNullOrEmpty()) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text("👨‍🌾", fontSize = 60.sp)
+                            }
+                        } else {
+                            AsyncImage(
+                                model = farmer?.avatarUri,
+                                contentDescription = "Profile Picture",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
                         }
                     }
                     Surface(
@@ -126,6 +177,8 @@ fun ManageProfileScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.Black,
+                        unfocusedTextColor = Color.Black,
                         focusedBorderColor = PremiumDarkGreen,
                         unfocusedBorderColor = Color.LightGray
                     ),
@@ -142,6 +195,8 @@ fun ManageProfileScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.Black,
+                        unfocusedTextColor = Color.Black,
                         focusedBorderColor = PremiumDarkGreen,
                         unfocusedBorderColor = Color.LightGray
                     ),
@@ -164,6 +219,8 @@ fun ManageProfileScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.Black,
+                        unfocusedTextColor = Color.Black,
                         focusedBorderColor = PremiumDarkGreen,
                         unfocusedBorderColor = Color.LightGray
                     ),
@@ -247,10 +304,13 @@ fun ManageProfileScreen(
                         .fillMaxWidth()
                         .height(64.dp)
                         .shadow(12.dp, RoundedCornerShape(32.dp), spotColor = PremiumDarkGreen),
-                    colors = ButtonDefaults.buttonColors(containerColor = PremiumDarkGreen),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PremiumDarkGreen,
+                        contentColor = Color.White
+                    ),
                     shape = RoundedCornerShape(32.dp)
                 ) {
-                    Text("Save Profile", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PremiumGold, letterSpacing = 1.sp)
+                    Text("Save Profile", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White, letterSpacing = 1.sp)
                 }
             }
 

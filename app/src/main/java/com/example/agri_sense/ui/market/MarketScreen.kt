@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,6 +16,7 @@ import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -27,10 +30,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.content.Intent
 import android.net.Uri
+import android.content.pm.PackageManager
+import java.util.Locale
 import androidx.compose.ui.platform.LocalContext
 import com.example.agri_sense.ui.dashboard.BottomNavBar
 import com.example.agri_sense.ui.theme.*
 import androidx.hilt.navigation.compose.hiltViewModel
+import kotlinx.coroutines.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,11 +57,17 @@ fun MarketScreen(
     var alertPrice by remember { mutableStateOf("") }
     val isEnglish = language == "English"
     val viewModel: MarketViewModel = hiltViewModel()
+    val profileViewModel: com.example.agri_sense.ui.profile.ProfileViewModel = hiltViewModel()
+    
+    val farmer by profileViewModel.farmer.collectAsState()
     val filteredPrices by viewModel.filteredPrices.collectAsState()
     val topGainers = remember(filteredPrices) { filteredPrices.sortedByDescending { it.trendPercent }.take(3) }
     val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             BottomNavBar(
                 currentRoute = "market",
@@ -115,8 +127,8 @@ fun MarketScreen(
                         unfocusedContainerColor = Color.White.copy(alpha = 0.9f),
                         focusedBorderColor = Color.Transparent,
                         unfocusedBorderColor = Color.Transparent,
-                        focusedTextColor = PremiumDarkGreen,
-                        unfocusedTextColor = PremiumDarkGreen
+                        focusedTextColor = Color.Black,
+                        unfocusedTextColor = Color.Black
                     ),
                     shape = RoundedCornerShape(16.dp)
                 )
@@ -135,8 +147,7 @@ fun MarketScreen(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     contentPadding = PaddingValues(horizontal = 24.dp)
                 ) {
-                    items(topGainers.size) { index ->
-                        val price = topGainers[index]
+                    items(topGainers) { price ->
                         val cropEmoji = when {
                             price.cropName.contains("Tobacco", true) -> "🌿"
                             price.cropName.contains("Maize", true) -> "🌽"
@@ -151,8 +162,8 @@ fun MarketScreen(
                             emoji = cropEmoji,
                             crop = if (isEnglish) price.cropName else price.cropNameChichewa,
                             type = price.marketName,
-                            price = "K${String.format("%,.0f", price.pricePerKg)}",
-                            trend = "+${String.format("%.0f", price.trendPercent)}%",
+                            price = "K${String.format(Locale.US, "%,.0f", price.pricePerKg)}",
+                            trend = "+${String.format(Locale.US, "%.0f", price.trendPercent)}%",
                             market = "${price.district} • ${price.region}",
                             onRouteClick = {
                                 targetMarket = price.marketName
@@ -183,13 +194,16 @@ fun MarketScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 24.dp)
                         .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PremiumGold, contentColor = PremiumDarkGreen),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PremiumGold, 
+                        contentColor = Color.White
+                    ),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Language, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(if (isEnglish) "Live FAO Market News" else "Nkhani za Msika (FAO)", fontWeight = FontWeight.Bold)
+                        Text(if (isEnglish) "Live FAO Market News" else "Nkhani za Msika (FAO)", fontWeight = FontWeight.Bold, color = Color.White)
                     }
                 }
 
@@ -240,10 +254,13 @@ fun MarketScreen(
                         }
                         Button(
                             onClick = { showAlertsDialog = true },
-                            colors = ButtonDefaults.buttonColors(containerColor = PremiumGold, contentColor = PremiumDarkGreen),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = PremiumGold, 
+                                contentColor = Color.White
+                            ),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Text(if (isEnglish) "Set Alert" else "Tcheru", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                            Text(if (isEnglish) "Set Alert" else "Tcheru", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)
                         }
                     }
                 }
@@ -293,9 +310,12 @@ fun MarketScreen(
                                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps/dir/?api=1&destination=$targetMarket+Market+Malawi")))
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = PremiumDarkGreen)
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PremiumGold, 
+                            contentColor = Color.White
+                        ),
                     ) {
-                        Text(if (isEnglish) "Start Navigation" else "Yambani Ulendo")
+                        Text(if (isEnglish) "Start Navigation" else "Yambani Ulendo", color = Color.White)
                     }
                 },
                 dismissButton = {
@@ -323,23 +343,44 @@ fun MarketScreen(
                             onValueChange = { alertCrop = it },
                             label = { Text("Crop (e.g. Maize)") },
                             modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.Black,
+                                unfocusedTextColor = Color.Black,
+                                focusedBorderColor = PremiumDarkGreen
+                            )
                         )
                         OutlinedTextField(
                             value = alertPrice,
                             onValueChange = { alertPrice = it },
                             label = { Text("Target Price (MWK)") },
                             modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.Black,
+                                unfocusedTextColor = Color.Black,
+                                focusedBorderColor = PremiumDarkGreen
+                            )
                         )
                     }
                 },
                 confirmButton = {
                     Button(
-                        onClick = { showAlertsDialog = false },
+                        onClick = {
+                            val id = farmer?.id ?: 0
+                            if (alertCrop.isNotBlank() && alertPrice.isNotBlank()) {
+                                viewModel.setPriceAlert(id.toString(), alertCrop, alertPrice.toDoubleOrNull() ?: 0.0)
+                                showAlertsDialog = false
+                                scope.launch {
+                                    snackbarHostState.showSnackbar(
+                                        if (isEnglish) "Alert set for $alertCrop!" else "Chenjezo latsimikizika pa $alertCrop!"
+                                    )
+                                }
+                            }
+                        },
                         colors = ButtonDefaults.buttonColors(containerColor = PremiumDarkGreen)
                     ) {
-                        Text("Save Alert")
+                        Text("Save Alert", color = Color.White)
                     }
                 },
                 dismissButton = {
@@ -423,14 +464,17 @@ fun PremiumPriceCard(emoji: String, crop: String, type: String, price: String, t
             Spacer(modifier = Modifier.height(20.dp))
             Button(
                 onClick = onRouteClick,
-                colors = ButtonDefaults.buttonColors(containerColor = PremiumDarkGreen),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PremiumDarkGreen,
+                    contentColor = Color.White
+                ),
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Directions, contentDescription = null, tint = PremiumGold)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Explore & Route", fontWeight = FontWeight.Bold, color = PremiumGold)
+                    Text("Explore & Route", fontWeight = FontWeight.Bold, color = Color.White)
                 }
             }
         }

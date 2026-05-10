@@ -26,6 +26,8 @@ class AgriSenseDataStore @Inject constructor(
         val KEY_NOTIFY_MARKET = booleanPreferencesKey("notify_market")
         val KEY_NOTIFY_WEATHER = booleanPreferencesKey("notify_weather")
         val KEY_LAST_SYNC     = stringPreferencesKey("last_sync_timestamp")
+        val KEY_AUTH_TOKEN    = stringPreferencesKey("auth_token")
+        val KEY_USER_ID       = stringPreferencesKey("user_id")
     }
 
     val language: Flow<String> = context.dataStore.data.map { it[KEY_LANGUAGE] ?: "English" }
@@ -34,9 +36,21 @@ class AgriSenseDataStore @Inject constructor(
     val notifyMarket: Flow<Boolean> = context.dataStore.data.map { it[KEY_NOTIFY_MARKET] ?: true }
     val notifyWeather: Flow<Boolean> = context.dataStore.data.map { it[KEY_NOTIFY_WEATHER] ?: true }
     val lastSyncTimestamp: Flow<String> = context.dataStore.data.map { it[KEY_LAST_SYNC] ?: "" }
+    val authToken: Flow<String?> = context.dataStore.data.map { it[KEY_AUTH_TOKEN] }
+    val userId: Flow<String?> = context.dataStore.data.map { it[KEY_USER_ID] }
 
     suspend fun setLanguage(lang: String) {
         context.dataStore.edit { it[KEY_LANGUAGE] = lang }
+    }
+    suspend fun setAuthToken(token: String?) {
+        context.dataStore.edit { 
+            if (token == null) it.remove(KEY_AUTH_TOKEN) else it[KEY_AUTH_TOKEN] = token 
+        }
+    }
+    suspend fun setUserId(id: String?) {
+        context.dataStore.edit { 
+            if (id == null) it.remove(KEY_USER_ID) else it[KEY_USER_ID] = id 
+        }
     }
     suspend fun setOfflineMode(enabled: Boolean) {
         context.dataStore.edit { it[KEY_OFFLINE_MODE] = enabled }

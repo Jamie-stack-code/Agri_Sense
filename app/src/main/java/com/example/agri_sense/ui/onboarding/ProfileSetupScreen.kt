@@ -8,7 +8,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.SquareFoot
+import androidx.compose.material.icons.filled.Grass
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,7 +28,7 @@ import com.example.agri_sense.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileSetupScreen(onSetupFree: () -> Unit, onSetupPremium: () -> Unit) {
+fun ProfileSetupScreen(onSetupComplete: () -> Unit) {
     val authViewModel: AuthViewModel = hiltViewModel()
     var name by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
@@ -33,9 +37,6 @@ fun ProfileSetupScreen(onSetupFree: () -> Unit, onSetupPremium: () -> Unit) {
     var farmSizeExpanded by remember { mutableStateOf(false) }
     var selectedCrop by remember { mutableStateOf("") }
     var cropExpanded by remember { mutableStateOf(false) }
-    
-    var showFreeConfirmCard by remember { mutableStateOf(false) }
-    var showPremiumConfirmCard by remember { mutableStateOf(false) }
     
     val districts = listOf(
         "Balaka", "Blantyre", "Chikwawa", "Chiradzulu", "Chitipa", "Dedza", "Dowa",
@@ -80,7 +81,7 @@ fun ProfileSetupScreen(onSetupFree: () -> Unit, onSetupPremium: () -> Unit) {
             modifier = Modifier.size(80.dp)
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(Icons.Default.Person, contentDescription = null, tint = PremiumDarkGreen, modifier = Modifier.size(40.dp))
+                Icon(Icons.Filled.Person, contentDescription = null, tint = PremiumDarkGreen, modifier = Modifier.size(40.dp))
             }
         }
         
@@ -109,7 +110,7 @@ fun ProfileSetupScreen(onSetupFree: () -> Unit, onSetupPremium: () -> Unit) {
         ) {
             Column(modifier = Modifier.padding(24.dp)) {
                 // Field 1: Full Name
-                PremiumFieldLabel(text = "Full Name (Optional)", icon = Icons.Default.Badge)
+                PremiumFieldLabel(text = "Full Name (Optional)", icon = Icons.Filled.Badge)
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -123,7 +124,7 @@ fun ProfileSetupScreen(onSetupFree: () -> Unit, onSetupPremium: () -> Unit) {
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // Field 2: Location
-                PremiumFieldLabel(text = "District", icon = Icons.Default.LocationOn)
+                PremiumFieldLabel(text = "District", icon = Icons.Filled.LocationOn)
                 ExposedDropdownMenuBox(
                     expanded = locationExpanded,
                     onExpandedChange = { locationExpanded = !locationExpanded }
@@ -158,7 +159,7 @@ fun ProfileSetupScreen(onSetupFree: () -> Unit, onSetupPremium: () -> Unit) {
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // Field 3: Farm Size
-                PremiumFieldLabel(text = "Farm Size (Hectares)", icon = Icons.Default.SquareFoot)
+                PremiumFieldLabel(text = "Farm Size (Hectares)", icon = Icons.Filled.SquareFoot)
                 ExposedDropdownMenuBox(
                     expanded = farmSizeExpanded,
                     onExpandedChange = { farmSizeExpanded = !farmSizeExpanded }
@@ -193,7 +194,7 @@ fun ProfileSetupScreen(onSetupFree: () -> Unit, onSetupPremium: () -> Unit) {
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // Field 4: Crop Type
-                PremiumFieldLabel(text = "Primary Crop Type", icon = Icons.Default.Grass)
+                PremiumFieldLabel(text = "Primary Crop Type", icon = Icons.Filled.Grass)
                 ExposedDropdownMenuBox(
                     expanded = cropExpanded,
                     onExpandedChange = { cropExpanded = !cropExpanded }
@@ -229,138 +230,42 @@ fun ProfileSetupScreen(onSetupFree: () -> Unit, onSetupPremium: () -> Unit) {
 
         Spacer(modifier = Modifier.height(48.dp))
         
-        // Free Trial Button
-        OutlinedButton(
-            onClick = { showFreeConfirmCard = true },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            shape = RoundedCornerShape(32.dp),
-            border = BorderStroke(2.dp, PremiumDarkGreen),
-            enabled = location.isNotBlank() && selectedCrop.isNotBlank()
-        ) {
-            Text(
-                text = "Free Trial",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = PremiumDarkGreen
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Premium Button
+        // Save Profile Button
         Button(
-            onClick = { showPremiumConfirmCard = true },
+            onClick = {
+                val farmSizeHa = parseFarmSize(farmSize)
+                authViewModel.saveProfile(
+                    name = name.ifBlank { "Farmer" },
+                    phone = "",
+                    district = location,
+                    farmSize = farmSizeHa,
+                    crops = listOf(selectedCrop.split(" (").first()),
+                    language = "English",
+                    subscriptionStatus = "FREE" // Or whatever plan they actually selected
+                )
+                onSetupComplete()
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(64.dp)
                 .shadow(16.dp, RoundedCornerShape(32.dp), spotColor = PremiumGold),
             colors = ButtonDefaults.buttonColors(
                 containerColor = PremiumDarkGreen,
+                contentColor = Color.White,
                 disabledContainerColor = Color.LightGray
             ),
             shape = RoundedCornerShape(32.dp),
             enabled = location.isNotBlank() && selectedCrop.isNotBlank()
         ) {
             Text(
-                text = "Premium",
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
-                color = PremiumGold
+                text = "Complete Setup & Go to Dashboard",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
+                color = Color.White
             )
         }
         
         Spacer(modifier = Modifier.height(32.dp))
         }
-    }
-    
-    // Interactive Confirmation Cards
-    if (showFreeConfirmCard) {
-        AlertDialog(
-            onDismissRequest = { showFreeConfirmCard = false },
-            containerColor = Color.White,
-            shape = RoundedCornerShape(24.dp),
-            title = {
-                Text("Start Free Trial", fontWeight = FontWeight.ExtraBold, color = PremiumDarkGreen)
-            },
-            text = {
-                Column {
-                    Text("You will get 30 days of full access to Agri-Sense to evaluate our AI tools.")
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("To continue, please sign in. You can upgrade to Premium anytime.", color = OnSurfaceSubtle, fontSize = 14.sp)
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showFreeConfirmCard = false
-                        // Parse farm size from label to hectares
-                        val farmSizeHa = parseFarmSize(farmSize)
-                        authViewModel.saveProfile(
-                            name = name.ifBlank { "Farmer" },
-                            phone = "",
-                            district = location,
-                            farmSize = farmSizeHa,
-                            crops = listOf(selectedCrop.split(" (").first()),
-                            language = "English",
-                            subscriptionStatus = "FREE_TRIAL"
-                        )
-                        onSetupFree()
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = PremiumDarkGreen)
-                ) {
-                    Text("Sign In")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showFreeConfirmCard = false }) {
-                    Text("Cancel", color = OnSurfaceSubtle)
-                }
-            }
-        )
-    }
-
-    if (showPremiumConfirmCard) {
-        AlertDialog(
-            onDismissRequest = { showPremiumConfirmCard = false },
-            containerColor = PremiumDarkGreen,
-            shape = RoundedCornerShape(24.dp),
-            title = {
-                Text("Unlock Premium", fontWeight = FontWeight.ExtraBold, color = PremiumGold)
-            },
-            text = {
-                Column {
-                    Text("Get unlimited access to Agri-Sense for the entire farming season for only $3 (~5,200 MWK).", color = Color.White)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("You will sign in, then proceed to payment via Airtel Money or TNM Mpamba.", color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp)
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showPremiumConfirmCard = false
-                        val farmSizeHa = parseFarmSize(farmSize)
-                        authViewModel.saveProfile(
-                            name = name.ifBlank { "Farmer" },
-                            phone = "",
-                            district = location,
-                            farmSize = farmSizeHa,
-                            crops = listOf(selectedCrop.split(" (").first()),
-                            language = "English",
-                            subscriptionStatus = "PREMIUM"
-                        )
-                        onSetupPremium()
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = PremiumGold)
-                ) {
-                    Text("Sign In & Pay", color = PremiumDarkGreen, fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showPremiumConfirmCard = false }) {
-                    Text("Cancel", color = Color.White.copy(alpha = 0.7f))
-                }
-            }
-        )
     }
 }
 

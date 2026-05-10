@@ -43,6 +43,7 @@ class MarketViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             marketRepository.seedIfEmpty()
+            marketRepository.syncLivePrices()
         }
         observePrices()
     }
@@ -52,6 +53,12 @@ class MarketViewModel @Inject constructor(
             marketRepository.allPrices.collect { prices ->
                 _allPrices.value = prices
             }
+        }
+    }
+
+    fun setPriceAlert(farmerId: String, cropName: String, targetPrice: Double) {
+        viewModelScope.launch {
+            marketRepository.setPriceAlert(farmerId, cropName, targetPrice)
         }
     }
 

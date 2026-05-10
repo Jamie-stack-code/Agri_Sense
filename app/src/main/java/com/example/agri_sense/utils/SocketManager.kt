@@ -19,9 +19,8 @@ class SocketManager @Inject constructor() {
             options.forceNew = true
             options.reconnection = true
             
-            // 10.0.2.2 is localhost for Android Emulator. 
-            // Replace with your machine's IP (e.g., 192.168.1.x) if using a physical device.
-            socket = IO.socket("http://10.0.2.2:5000", options)
+            // Use BuildConfig.SOCKET_URL to allow testing on physical devices or different networks
+            socket = IO.socket(com.example.agri_sense.BuildConfig.SOCKET_URL, options)
             
             socket?.on(Socket.EVENT_CONNECT) {
                 Log.d(TAG, "⚡ Neural Link Established with Server")

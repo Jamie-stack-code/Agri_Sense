@@ -11,21 +11,23 @@ import com.example.agri_sense.data.repository.PestAlertRepository
 import com.example.agri_sense.data.repository.WeatherRepository
 import com.example.agri_sense.data.repository.AiExpertRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import javax.inject.Inject
 
+import com.example.agri_sense.data.models.IntelNews
+import com.example.agri_sense.data.network.IntelApi
+
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val farmerRepository: FarmerRepository,
     private val weatherRepository: WeatherRepository,
     private val pestRepository: PestAlertRepository,
     private val discussionRepository: DiscussionRepository,
-    private val aiExpertRepository: AiExpertRepository
+    private val aiExpertRepository: AiExpertRepository,
+    private val intelApi: IntelApi
 ) : ViewModel() {
 
     val farmer: StateFlow<Farmer?> = farmerRepository.farmerFlow
@@ -40,6 +42,9 @@ class HomeViewModel @Inject constructor(
     private val _recentDiscussions = MutableStateFlow<List<Discussion>>(emptyList())
     val recentDiscussions: StateFlow<List<Discussion>> = _recentDiscussions.asStateFlow()
 
+    private val _liveNews = MutableStateFlow<List<IntelNews>>(emptyList())
+    val liveNews: StateFlow<List<IntelNews>> = _liveNews.asStateFlow()
+
     private val _aiResponse = MutableStateFlow("")
     val aiResponse: StateFlow<String> = _aiResponse.asStateFlow()
 
@@ -49,18 +54,33 @@ class HomeViewModel @Inject constructor(
             weatherRepository.seedIfEmpty()
             pestRepository.seedIfEmpty()
             discussionRepository.seedIfEmpty()
+            fetchLiveNews()
         }
         observeWeather()
         observeDiscussions()
     }
 
+    private suspend fun fetchLiveNews() {
+        try {
+            val response = intelApi.getIntelNews()
+            if (response.isSuccessful) {
+                _liveNews.value = response.body() ?: emptyList()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
     private fun observeWeather() {
         viewModelScope.launch {
-            farmer.collect { f ->
+            farmer.flatMapLatest { f ->
                 val district = f?.district ?: "Lilongwe"
-                weatherRepository.getWeatherForDistrict(district).collect { w ->
-                    _weather.value = w
+                viewModelScope.launch {
+                    weatherRepository.syncWeatherForDistrict(district)
                 }
+                weatherRepository.getWeatherForDistrict(district)
+            }.collect { w ->
+                _weather.value = w
             }
         }
     }

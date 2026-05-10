@@ -24,12 +24,33 @@ class MarketSyncWorker @AssistedInject constructor(
             val isOffline = dataStore.offlineMode.first()
             if (isOffline) return Result.success()
 
-            // Seed/refresh market data
-            marketRepository.seedIfEmpty()
+            // Refresh live prices from backend
+            marketRepository.syncLivePrices()
 
-            // Check for price spikes and notify
+            // Check for user-defined price alerts
             val notifyMarket = dataStore.notifyMarket.first()
             if (notifyMarket) {
+                val farmerId = dataStore.userId.first()
+                if (farmerId != null) {
+                    val alerts = marketRepository.getFarmerAlerts(farmerId)
+                    val livePrices = marketRepository.allPrices.first()
+                    
+                    alerts.filter { it.isActive }.forEach { alert ->
+                        val currentPrice = livePrices.find { it.cropName.equals(alert.cropName, ignoreCase = true) }?.pricePerKg ?: 0.0
+                        
+                        val isTriggered = if (alert.condition == "GREATER_THAN") {
+                            currentPrice >= alert.targetPrice
+                        } else {
+                            currentPrice <= alert.targetPrice
+                        }
+
+                        if (isTriggered && currentPrice > 0) {
+                            notificationHelper.sendMarketPriceAlert(alert.cropName, currentPrice)
+                        }
+                    }
+                }
+
+                // Also notify general spikes as fallback
                 val allPrices = marketRepository.allPrices.first()
                 val spiked = allPrices.filter { it.trendPercent >= 10.0 }
                 spiked.firstOrNull()?.let { price ->

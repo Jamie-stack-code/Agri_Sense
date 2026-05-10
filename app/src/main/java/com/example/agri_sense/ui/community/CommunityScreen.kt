@@ -12,6 +12,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -27,7 +31,7 @@ import androidx.compose.ui.unit.sp
 import com.example.agri_sense.ui.theme.*
 import com.example.agri_sense.ui.dashboard.BottomNavBar
 import androidx.hilt.navigation.compose.hiltViewModel
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,6 +57,16 @@ fun CommunityScreen(
     val viewModel: CommunityViewModel = hiltViewModel()
     val discussions by viewModel.filteredDiscussions.collectAsState()
     val pestAlerts by viewModel.pestAlerts.collectAsState()
+    val selectedImageUri by viewModel.selectedImageUri.collectAsState()
+    var selectedPestAlert by remember { mutableStateOf<com.example.agri_sense.data.models.PestAlert?>(null) }
+    
+    val farmerCount by viewModel.farmerCount.collectAsState()
+    
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        viewModel.pickImage(uri)
+    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -109,13 +123,13 @@ fun CommunityScreen(
                         ) {
                             Icon(Icons.Default.People, contentDescription = null, tint = PremiumGold, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("50K+", color = PremiumGold, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
+                            Text(farmerCount, color = PremiumGold, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
                         }
                     }
                 }
                 
                 Text(
-                    text = if (isEnglish) "Connect with 50,000+ farmers across Africa" else "Lumikizanani ndi alimi opitilira 50,000 ku Africa",
+                    text = if (isEnglish) "Connect with $farmerCount farmers across Africa" else "Lumikizanani ndi alimi $farmerCount ku Africa",
                     color = Color.White.copy(alpha = 0.8f),
                     fontSize = 15.sp,
                     modifier = Modifier.padding(top = 8.dp, bottom = 28.dp),
@@ -136,8 +150,8 @@ fun CommunityScreen(
                         unfocusedContainerColor = Color.White.copy(alpha = 0.9f),
                         focusedBorderColor = Color.Transparent,
                         unfocusedBorderColor = Color.Transparent,
-                        focusedTextColor = PremiumDarkGreen,
-                        unfocusedTextColor = PremiumDarkGreen
+                        focusedTextColor = Color.Black,
+                        unfocusedTextColor = Color.Black
                     ),
                     shape = RoundedCornerShape(16.dp)
                 )
@@ -158,12 +172,17 @@ fun CommunityScreen(
                     modifier = Modifier.weight(1f)
                 ) { selectedTab = "Community Feed" }
                 
+                val unreadCount by viewModel.unreadPestCount.collectAsState()
                 PremiumCommunityTab(
                     title = if (isEnglish) "Pest Alerts" else "Machenjezo",
                     isSelected = selectedTab == "Pest Alerts",
                     modifier = Modifier.weight(1f),
-                    icon = Icons.Default.Warning
-                ) { selectedTab = "Pest Alerts" }
+                    icon = Icons.Default.Warning,
+                    badgeCount = if (unreadCount > 0) unreadCount else 0
+                ) { 
+                    selectedTab = "Pest Alerts"
+                    if (unreadCount > 0) viewModel.markAllAlertsAsRead()
+                }
             }
 
             // Quick Action Cards
@@ -225,6 +244,7 @@ fun CommunityScreen(
                             comments = disc.replies,
                             isExpertVerified = disc.expertAnswer.isNotEmpty(),
                             expertResponse = disc.expertAnswer.ifEmpty { null },
+                            imageUrl = disc.imageUrl,
                             onLike = { viewModel.likeDiscussion(it) },
                             onComment = { activeCommentPostId = it },
                             onShare = { text ->
@@ -239,53 +259,144 @@ fun CommunityScreen(
                     }
                 }
             } else if (selectedTab == "Pest Alerts") {
-                Text(
-                    text = if (isEnglish) "Urgent Outbreaks" else "Zofunika Mwamsanga",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color.Red.copy(alpha = 0.8f),
-                    modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 16.dp)
-                )
-
                 Column(
                     modifier = Modifier.padding(horizontal = 24.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(color = Color.Red.copy(0.1f), shape = CircleShape, modifier = Modifier.size(12.dp)) {
+                             Box(modifier = Modifier.fillMaxSize().background(Color.Red, CircleShape))
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = if (isEnglish) "Urgent Expert Advisories" else "Machenjezo a Akatswiri",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = PremiumDarkGreen
+                        )
+                    }
+
+                    if (pestAlerts.isEmpty()) {
+                        Text(
+                            text = if (isEnglish) "No active outbreaks reported." else "Palibe machenjezo atsopano.",
+                            color = OnSurfaceSubtle,
+                            modifier = Modifier.padding(vertical = 24.dp)
+                        )
+                    }
+
                     pestAlerts.forEach { pest ->
-                        val bgColor = when (pest.severityLevel) {
-                            "critical" -> Color(0xFFFFF0F0)
-                            "high" -> Color(0xFFFFF8E1)
-                            else -> Color(0xFFF1F8E9)
+                        val (bgColor, accentColor, icon) = when (pest.severityLevel.lowercase()) {
+                            "critical" -> Triple(Color(0xFFFFF0F0), Color.Red, Icons.Default.NewReleases)
+                            "high" -> Triple(Color(0xFFFFF8E1), Color(0xFFFF8F00), Icons.Default.Warning)
+                            else -> Triple(Color(0xFFF1F8E9), PremiumDarkGreen, Icons.Default.Info)
                         }
-                        val accentColor = when (pest.severityLevel) {
-                            "critical" -> Color.Red
-                            "high" -> Color(0xFFFF8F00)
-                            else -> PremiumDarkGreen
-                        }
+
                         Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(20.dp),
-                            colors = CardDefaults.cardColors(containerColor = bgColor)
+                            modifier = Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(28.dp)),
+                            shape = RoundedCornerShape(28.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White)
                         ) {
-                            Column(modifier = Modifier.padding(20.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.Warning, contentDescription = null, tint = accentColor)
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        if (isEnglish) pest.pestName else pest.pestNameChichewa.ifEmpty { pest.pestName },
-                                        fontWeight = FontWeight.Bold,
-                                        color = accentColor
-                                    )
+                            Column {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(accentColor)
+                                        .padding(horizontal = 20.dp, vertical = 8.dp)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(icon, null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(
+                                            pest.severityLevel.uppercase(),
+                                            color = Color.White,
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Black,
+                                            letterSpacing = 1.sp
+                                        )
+                                    }
                                 }
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    if (isEnglish) "Outbreak in ${pest.outbreakDistricts}. Affects: ${pest.affectedCrops}"
-                                    else "Kubuka mu ${pest.outbreakDistricts}. Mbewu: ${pest.affectedCrops}",
-                                    fontSize = 14.sp
-                                )
-                                if (pest.recommendedAction.isNotEmpty()) {
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(pest.recommendedAction, fontSize = 13.sp, color = OnSurfaceSubtle)
+                                
+                                Column(modifier = Modifier.padding(24.dp)) {
+                                    Text(
+                                        text = if (isEnglish) pest.pestName else pest.pestNameChichewa.ifEmpty { pest.pestName },
+                                        fontSize = 22.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = PremiumDarkGreen
+                                    )
+                                    
+                                    Spacer(Modifier.height(8.dp))
+                                    
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.LocationOn, null, tint = PremiumGold, modifier = Modifier.size(14.dp))
+                                        Spacer(Modifier.width(4.dp))
+                                        Text(
+                                            text = pest.outbreakDistricts,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = OnSurfaceSubtle
+                                        )
+                                    }
+
+                                    Spacer(Modifier.height(16.dp))
+                                    
+                                    Surface(
+                                        color = bgColor,
+                                        shape = RoundedCornerShape(16.dp)
+                                    ) {
+                                        Column(modifier = Modifier.padding(16.dp)) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(Icons.Default.Shield, null, tint = accentColor, modifier = Modifier.size(16.dp))
+                                                Spacer(Modifier.width(8.dp))
+                                                Text(
+                                                    if (isEnglish) "Expert Guidance" else "Malangizo a Katswiri",
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    fontSize = 12.sp,
+                                                    color = accentColor
+                                                )
+                                            }
+                                            Spacer(Modifier.height(8.dp))
+                                            Text(
+                                                text = if (isEnglish) pest.description else pest.descriptionChichewa.ifEmpty { pest.description },
+                                                fontSize = 14.sp,
+                                                lineHeight = 20.sp,
+                                                color = Color.DarkGray
+                                            )
+                                        }
+                                    }
+
+                                    if (pest.recommendedAction.isNotEmpty()) {
+                                        Spacer(Modifier.height(16.dp))
+                                        Text(
+                                            if (isEnglish) "Action Required:" else "Zochita:",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 13.sp,
+                                            color = PremiumDarkGreen
+                                        )
+                                        Text(
+                                            if (isEnglish) pest.recommendedAction else pest.recommendedActionChichewa.ifEmpty { pest.recommendedAction },
+                                            fontSize = 13.sp,
+                                            color = Color.Gray,
+                                            lineHeight = 18.sp
+                                        )
+                                    }
+                                    
+                                    Spacer(Modifier.height(20.dp))
+                                    
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            getRelativeTime(pest.reportedAt),
+                                            fontSize = 11.sp,
+                                            color = OnSurfaceSubtle,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                        TextButton(onClick = { selectedPestAlert = pest }) {
+                                            Text(if (isEnglish) "Read Full Advisory" else "Werengani Zonse", color = accentColor, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -294,6 +405,119 @@ fun CommunityScreen(
             }
             
             Spacer(modifier = Modifier.height(32.dp))
+        }
+
+        if (selectedPestAlert != null) {
+            ModalBottomSheet(
+                onDismissRequest = { selectedPestAlert = null },
+                containerColor = Color.White,
+                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+            ) {
+                val pest = selectedPestAlert!!
+                val accentColor = when (pest.severityLevel.lowercase()) {
+                    "critical" -> Color.Red
+                    "high" -> Color(0xFFFF8F00)
+                    else -> PremiumDarkGreen
+                }
+                
+                Column(
+                    modifier = Modifier.padding(24.dp).fillMaxWidth().verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.Start
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Surface(color = accentColor.copy(0.1f), shape = RoundedCornerShape(8.dp)) {
+                            Text(pest.severityLevel.uppercase(), color = accentColor, fontWeight = FontWeight.Black, fontSize = 10.sp, modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp))
+                        }
+                        IconButton(onClick = { selectedPestAlert = null }) {
+                            Icon(Icons.Default.Close, null, tint = Color.Gray)
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Text(
+                        text = if (isEnglish) pest.pestName else pest.pestNameChichewa.ifEmpty { pest.pestName },
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Black,
+                        color = PremiumDarkGreen,
+                        lineHeight = 34.sp
+                    )
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.History, null, tint = OnSurfaceSubtle, modifier = Modifier.size(14.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Published ${getRelativeTime(pest.reportedAt)}", fontSize = 12.sp, color = OnSurfaceSubtle)
+                    }
+                    
+                    Spacer(modifier = Modifier.height(32.dp))
+                    
+                    Text(
+                        if (isEnglish) "INTELLIGENCE REPORT" else "LIPOTI LA KATSWIRI",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 2.sp,
+                        color = OnSurfaceSubtle
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = if (isEnglish) pest.description else pest.descriptionChichewa.ifEmpty { pest.description },
+                        fontSize = 16.sp,
+                        lineHeight = 26.sp,
+                        color = Color.DarkGray
+                    )
+                    
+                    Spacer(modifier = Modifier.height(32.dp))
+                    
+                    Text(
+                        if (isEnglish) "OUTBREAK DETAILS" else "ZAMBIRI ZA KUBUKA",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 2.sp,
+                        color = OnSurfaceSubtle
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Surface(color = PremiumSurface, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            DetailItem(Icons.Default.LocationOn, if (isEnglish) "Districts" else "Zigawo", pest.outbreakDistricts)
+                            DetailItem(Icons.Default.Agriculture, if (isEnglish) "Affected Crops" else "Mbewu", pest.affectedCrops)
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(32.dp))
+                    
+                    Text(
+                        if (isEnglish) "EXPERT RECOMMENDED ACTIONS" else "ZOCHITA ZOTSIMIKIZIDWA",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 2.sp,
+                        color = accentColor
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Surface(color = accentColor.copy(0.05f), border = BorderStroke(1.dp, accentColor.copy(0.2f)), shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = if (isEnglish) pest.recommendedAction else pest.recommendedActionChichewa.ifEmpty { pest.recommendedAction },
+                            modifier = Modifier.padding(20.dp),
+                            fontSize = 15.sp,
+                            lineHeight = 22.sp,
+                            color = Color.DarkGray,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(48.dp))
+                    Button(
+                        onClick = { selectedPestAlert = null },
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = PremiumDarkGreen),
+                        shape = RoundedCornerShape(28.dp)
+                    ) {
+                        Text(if (isEnglish) "I Understand" else "Ndizimvetsera", fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(modifier = Modifier.height(32.dp))
+                }
+            }
         }
 
         if (showAskExpertModal) {
@@ -327,11 +551,54 @@ fun CommunityScreen(
                         placeholder = { Text(if (isEnglish) "Describe your farm issue in detail..." else "Fotokozani vuto lanu...") },
                         shape = RoundedCornerShape(16.dp),
                         colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.Black,
+                            unfocusedTextColor = Color.Black,
                             focusedBorderColor = PremiumDarkGreen,
                             unfocusedBorderColor = Color.LightGray
                         ),
                         maxLines = 5
                     )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Image Picker & Preview
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Start,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(
+                            onClick = { galleryLauncher.launch("image/*") },
+                            colors = IconButtonDefaults.iconButtonColors(containerColor = PremiumDarkGreen.copy(alpha = 0.1f))
+                        ) {
+                            Icon(Icons.Default.AddPhotoAlternate, contentDescription = "Attach Photo", tint = PremiumDarkGreen)
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            if (selectedImageUri != null) "Photo attached" else "Attach farm photo",
+                            color = if (selectedImageUri != null) PremiumDarkGreen else OnSurfaceSubtle,
+                            fontWeight = if (selectedImageUri != null) FontWeight.Bold else FontWeight.Normal
+                        )
+                    }
+                    
+                    if (selectedImageUri != null) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Box(modifier = Modifier.size(100.dp).clip(RoundedCornerShape(12.dp))) {
+                            AsyncImage(
+                                model = selectedImageUri,
+                                contentDescription = "Preview",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                            IconButton(
+                                onClick = { viewModel.clearSelectedImage() },
+                                modifier = Modifier.align(Alignment.TopEnd).size(24.dp).padding(4.dp),
+                                colors = IconButtonDefaults.iconButtonColors(containerColor = Color.Black.copy(alpha = 0.5f))
+                            ) {
+                                Icon(Icons.Default.Close, contentDescription = "Remove", tint = Color.White, modifier = Modifier.size(12.dp))
+                            }
+                        }
+                    }
                     
                     Spacer(modifier = Modifier.height(24.dp))
                     Button(
@@ -345,11 +612,14 @@ fun CommunityScreen(
                                 }
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = PremiumDarkGreen),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PremiumDarkGreen,
+                            contentColor = Color.White
+                        ),
                         modifier = Modifier.fillMaxWidth().height(56.dp),
                         shape = RoundedCornerShape(28.dp)
                     ) {
-                        Text("Submit for Review", color = PremiumGold, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text("Submit for Review", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     }
                     Spacer(modifier = Modifier.height(32.dp))
                 }
@@ -369,7 +639,11 @@ fun CommunityScreen(
                         modifier = Modifier.fillMaxWidth().height(100.dp),
                         placeholder = { Text(if (isEnglish) "Write your response..." else "Lembani yankho lanu...") },
                         shape = RoundedCornerShape(16.dp),
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PremiumDarkGreen)
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.Black,
+                            unfocusedTextColor = Color.Black,
+                            focusedBorderColor = PremiumDarkGreen
+                        )
                     )
                 },
                 confirmButton = {
@@ -381,9 +655,12 @@ fun CommunityScreen(
                                 userComment = ""
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = PremiumDarkGreen)
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PremiumDarkGreen,
+                            contentColor = Color.White
+                        )
                     ) {
-                        Text(if (isEnglish) "Post" else "Tumizani")
+                        Text(if (isEnglish) "Post" else "Tumizani", color = Color.White)
                     }
                 },
                 dismissButton = {
@@ -402,6 +679,7 @@ fun PremiumCommunityTab(
     isSelected: Boolean,
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
+    badgeCount: Int = 0,
     onClick: () -> Unit
 ) {
     Surface(
@@ -430,6 +708,24 @@ fun PremiumCommunityTab(
                 fontWeight = FontWeight.Bold,
                 color = if (isSelected) Color.White else Color.Gray
             )
+            
+            if (badgeCount > 0) {
+                Spacer(modifier = Modifier.width(6.dp))
+                Surface(
+                    color = Color.Red,
+                    shape = CircleShape,
+                    modifier = Modifier.size(18.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = badgeCount.toString(),
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -479,6 +775,7 @@ fun PremiumPostCard(
     comments: Int,
     isExpertVerified: Boolean = false,
     expertResponse: String? = null,
+    imageUrl: String = "",
     onLike: (String) -> Unit,
     onComment: (String) -> Unit,
     onShare: (String) -> Unit
@@ -512,6 +809,16 @@ fun PremiumPostCard(
             }
             Spacer(modifier = Modifier.height(20.dp))
             Text(text = content, color = Color.DarkGray, fontSize = 15.sp, lineHeight = 22.sp)
+            
+            if (imageUrl.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(16.dp))
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = "Farm Image",
+                    modifier = Modifier.fillMaxWidth().height(200.dp).clip(RoundedCornerShape(16.dp)),
+                    contentScale = ContentScale.Crop
+                )
+            }
             
             if (isExpertVerified && expertResponse != null) {
                 Spacer(modifier = Modifier.height(16.dp))
@@ -580,5 +887,17 @@ private fun getRelativeTime(timestamp: Long): String {
         hours < 24 -> "${hours}h ago"
         days < 7 -> "${days}d ago"
         else -> "${days / 7}w ago"
+    }
+}
+
+@Composable
+fun DetailItem(icon: ImageVector, label: String, value: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, null, tint = PremiumDarkGreen, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(12.dp))
+        Column {
+            Text(label, fontSize = 10.sp, fontWeight = FontWeight.Black, color = OnSurfaceSubtle, letterSpacing = 1.sp)
+            Text(value, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PremiumDarkGreen)
+        }
     }
 }

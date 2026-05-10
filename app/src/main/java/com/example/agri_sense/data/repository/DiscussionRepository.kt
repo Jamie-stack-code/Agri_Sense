@@ -43,7 +43,7 @@ class DiscussionRepository @Inject constructor(
 
     fun search(query: String): Flow<List<Discussion>> = discussionDao.search(query)
 
-    suspend fun postQuestion(question: String, authorName: String, authorDistrict: String, authorCrop: String = "") {
+    suspend fun postQuestion(question: String, authorName: String, authorDistrict: String, authorCrop: String = "", imageUrl: String = "") {
         val newId = UUID.randomUUID().toString()
         val discussion = Discussion(
             id = newId,
@@ -51,6 +51,12 @@ class DiscussionRepository @Inject constructor(
             authorDistrict = authorDistrict,
             authorCrop = authorCrop,
             question = question,
+            imageUrl = imageUrl,
+            expertAnswer = "",
+            likes = 0,
+            replies = 0,
+            tags = "",
+            isAnswered = false,
             isUserPost = true,
             postedAt = System.currentTimeMillis()
         )
@@ -63,6 +69,7 @@ class DiscussionRepository @Inject constructor(
             "id" to newId,
             "content" to question,
             "authorName" to authorName,
+            "imageUrl" to imageUrl,
             "farmerId" to "local-user-id" 
         )
         socketManager.emit("NEW_FARMER_QUESTION", payload)
@@ -75,10 +82,20 @@ class DiscussionRepository @Inject constructor(
         if (discussionDao.getCount() > 0) return
         val now = System.currentTimeMillis()
         discussionDao.insertAll(listOf(
-            Discussion("d1", "James Phiri", "Kasungu", "Maize",
-                "My maize leaves are turning yellow from the bottom up. Soil test shows low nitrogen. What fertilizer should I apply at V6?",
-                "Apply CAN at 50 kg/ha as a top-dress. Ensure soil moisture before applying to prevent burning.",
-                42, 7, "maize,fertilizer,nitrogen", true, false, now - 86400000L)
+            Discussion(
+                id = "d1",
+                authorName = "James Phiri",
+                authorDistrict = "Kasungu",
+                authorCrop = "Maize",
+                question = "My maize leaves are turning yellow from the bottom up. Soil test shows low nitrogen. What fertilizer should I apply at V6?",
+                expertAnswer = "Apply CAN at 50 kg/ha as a top-dress. Ensure soil moisture before applying to prevent burning.",
+                likes = 42,
+                replies = 7,
+                tags = "maize,fertilizer,nitrogen",
+                isAnswered = true,
+                isUserPost = false,
+                postedAt = now - 86400000L
+            )
         ))
     }
 }

@@ -8,8 +8,8 @@ interface OpenMeteoApi {
     suspend fun getWeather(
         @Query("latitude") latitude: Double,
         @Query("longitude") longitude: Double,
-        @Query("current") current: String = "temperature_2m,relative_humidity_2m,wind_speed_10m",
-        @Query("daily") daily: String = "temperature_2m_max,temperature_2m_min,uv_index_max",
+        @Query("current") current: String = "temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code,precipitation",
+        @Query("daily") daily: String = "temperature_2m_max,temperature_2m_min,uv_index_max,precipitation_sum,weather_code",
         @Query("timezone") timezone: String = "Africa/Maputo"
     ): WeatherResponse
 }
@@ -22,11 +22,15 @@ data class WeatherResponse(
 data class CurrentWeather(
     val temperature_2m: Double,
     val relative_humidity_2m: Int,
-    val wind_speed_10m: Double
+    val wind_speed_10m: Double,
+    val weather_code: Int,
+    val precipitation: Double
 )
 
 data class DailyWeather(
     val temperature_2m_max: List<Double>,
     val temperature_2m_min: List<Double>,
-    val uv_index_max: List<Double>
+    val uv_index_max: List<Double>,
+    val precipitation_sum: List<Double>,
+    val weather_code: List<Int>
 )
