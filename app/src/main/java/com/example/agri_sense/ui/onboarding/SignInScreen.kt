@@ -1,5 +1,8 @@
 package com.example.agri_sense.ui.onboarding
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -7,12 +10,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,10 +21,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -41,18 +41,17 @@ fun SignInScreen(
 ) {
     var phone by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
-    
+    val context = LocalContext.current
+    val activity = remember(context) { context.findActivity() }
+
     val loading by viewModel.loading.collectAsState()
     val error by viewModel.error.collectAsState()
     val isOnboarded by viewModel.isOnboarded.collectAsState()
     val isProfileComplete by viewModel.isProfileComplete.collectAsState()
-    
+
     val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(Unit) {
-        viewModel.clearError()
-    }
+    LaunchedEffect(Unit) { viewModel.clearError() }
 
     LaunchedEffect(isOnboarded, isProfileComplete) {
         if (isOnboarded == true && isProfileComplete != null) {
@@ -122,7 +121,8 @@ fun SignInScreen(
                 OutlinedTextField(
                     value = phone,
                     onValueChange = { phone = it },
-                    label = { Text(if (language == "English") "Phone Number" else "Nambala ya Foni") },
+                    label = { Text(if (language == "English") "Phone Number (+265...)"
+                        else "Nambala ya Foni (+265...)") },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
@@ -143,18 +143,9 @@ fun SignInScreen(
                     label = { Text(if (language == "English") "Password" else "Chinsinsi") },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    visualTransformation = PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null, tint = PremiumDarkGreen) },
-                    trailingIcon = {
-                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                            Icon(
-                                if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                                contentDescription = null,
-                                tint = Color.Gray
-                            )
-                        }
-                    },
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = Color.Black,
                         unfocusedTextColor = Color.Black,
@@ -178,7 +169,7 @@ fun SignInScreen(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Button(
-                    onClick = { viewModel.signIn(phone, password) },
+                    onClick = { viewModel.signInWithPassword(phone, password) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp)
@@ -221,4 +212,13 @@ fun SignInScreen(
             }
         }
     }
+}
+
+private fun Context.findActivity(): Activity? {
+    var context = this
+    while (context is ContextWrapper) {
+        if (context is Activity) return context
+        context = context.baseContext
+    }
+    return null
 }

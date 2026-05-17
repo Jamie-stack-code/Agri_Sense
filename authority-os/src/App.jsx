@@ -8,7 +8,7 @@ import SystemSettings from './pages/SystemSettings';
 import { Menu } from 'lucide-react';
 
 import LoginPage from './pages/LoginPage';
-import OtpPage from './pages/OtpPage';
+import VerifyEmailPage from './pages/VerifyEmailPage';
 import RoleSelectionPage from './pages/RoleSelectionPage';
 import RegisterPage from './pages/RegisterPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
@@ -48,21 +48,27 @@ function App() {
 
   if (step === 'choice') return <RoleSelectionPage onSelect={(role) => { setSelectedRole(role); setStep('login'); }} />;
   if (step === 'register') return (
-    <RegisterPage 
-      role={selectedRole} 
-      onBack={() => setStep('login')} 
-      onRegistered={(email) => { setAuthEmail(email); setStep('otp'); }}
+    <RegisterPage
+      role={selectedRole}
+      onBack={() => setStep('login')}
+      onRegistered={(email) => { setAuthEmail(email); setStep('verify-email'); }}
     />
   );
   if (step === 'login') return (
-    <LoginPage 
-      onOtpRequested={(email) => { setAuthEmail(email); setStep('otp'); }} 
-      onRegister={() => setStep('register')} 
+    <LoginPage
+      onOtpRequested={(email) => { setAuthEmail(email); setStep('verify-email'); }}
+      onRegister={() => setStep('register')}
       onForgotPassword={() => setStep('forgot')}
       onVerified={handleVerified}
     />
   );
-  if (step === 'otp') return <OtpPage email={authEmail} onVerified={handleVerified} />;
+  if (step === 'verify-email') return (
+    <VerifyEmailPage
+      email={authEmail}
+      onBack={() => setStep('login')}
+      onVerified={handleVerified}
+    />
+  );
   if (step === 'forgot') return <ForgotPasswordPage onBack={() => setStep('login')} />;
 
   return (

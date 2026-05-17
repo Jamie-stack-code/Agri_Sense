@@ -1,5 +1,8 @@
 package com.example.agri_sense.ui.onboarding
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -21,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -45,6 +49,9 @@ fun SignUpScreen(
     var confirmPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    val activity = remember(context) { context.findActivity() }
 
     val loading by viewModel.loading.collectAsState()
     val otpDispatched by viewModel.otpDispatched.collectAsState()
@@ -85,35 +92,35 @@ fun SignUpScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(260.dp)
+                    .height(150.dp)
                     .background(
                         brush = Brush.verticalGradient(
                             colors = listOf(PremiumDarkGreen, AgriGreenScreenBg)
                         ),
-                        shape = RoundedCornerShape(bottomStart = 48.dp, bottomEnd = 48.dp)
+                        shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
                     ),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Surface(
                         color = Color.White,
-                        shape = RoundedCornerShape(24.dp),
-                        modifier = Modifier.size(80.dp),
-                        shadowElevation = 16.dp
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.size(52.dp),
+                        shadowElevation = 8.dp
                     ) {
-                        AgriSenseLogo(size = 48.dp, tint = PremiumDarkGreen)
+                        AgriSenseLogo(size = 32.dp, tint = PremiumDarkGreen)
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = if (language == "English") "Create Account" else "Pangani Akaunti",
-                        fontSize = 28.sp,
+                        fontSize = 22.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = Color.White
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             Column(modifier = Modifier.padding(horizontal = 24.dp)) {
                 OutlinedTextField(
@@ -131,7 +138,7 @@ fun SignUpScreen(
                     )
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 OutlinedTextField(
                     value = phone,
@@ -149,7 +156,7 @@ fun SignUpScreen(
                     )
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 val isPasswordValid = password.length >= 6
                 OutlinedTextField(
@@ -184,7 +191,7 @@ fun SignUpScreen(
                     )
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 val passwordsMatch = password == confirmPassword
                 OutlinedTextField(
@@ -219,10 +226,10 @@ fun SignUpScreen(
                     )
                 )
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 Button(
-                    onClick = { viewModel.signUp(phone, name, password, language) },
+                    onClick = { activity?.let { viewModel.sendPhoneOtp(phone, it) } },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp)
@@ -245,7 +252,7 @@ fun SignUpScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -265,4 +272,13 @@ fun SignUpScreen(
             }
         }
     }
+}
+
+private fun Context.findActivity(): Activity? {
+    var context = this
+    while (context is ContextWrapper) {
+        if (context is Activity) return context
+        context = context.baseContext
+    }
+    return null
 }

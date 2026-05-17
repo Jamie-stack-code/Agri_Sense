@@ -1,179 +1,158 @@
 import React, { useState } from 'react';
 import AuthLayout from '../components/auth/AuthLayout';
-import { Mail, ShieldCheck, Loader2, ArrowLeft, Lock } from 'lucide-react';
-import axios from 'axios';
+import { Mail, ShieldCheck, Loader2, ArrowLeft, MailCheck, AlertCircle } from 'lucide-react';
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { auth } from '../firebase';
 
 const ForgotPasswordPage = ({ onBack }) => {
-  const [step, setStep] = useState('request'); // request, verify, reset
   const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [sent, setSent] = useState(false);
 
-  const handleRequestOtp = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+
     try {
-      await axios.post('http://localhost:5000/api/auth/request-otp', { email });
-      setStep('verify');
+      // Firebase sends the password reset link directly to the user's email
+      await sendPasswordResetEmail(auth, email);
+      setSent(true);
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to dispatch security code.');
+      console.error(err);
+      if (err.code === 'auth/user-not-found') {
+        setError('No account found with this email address.');
+      } else if (err.code === 'auth/invalid-email') {
+        setError('Please enter a valid email address.');
+      } else if (err.code === 'auth/too-many-requests') {
+        setError('Too many requests. Please wait a moment and try again.');
+      } else {
+        setError('Failed to send reset email. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleVerifyOtp = (e) => {
-    e.preventDefault();
-    const code = otp.join('');
-    if (code.length === 6) setStep('reset');
-  };
-
-  const handleResetPassword = async (e) => {
-    e.preventDefault();
-    if (newPassword !== confirmPassword) {
-      setError('Passwords do not match.');
-      return;
-    }
-    setLoading(true);
-    setError('');
-    try {
-      await axios.post('http://localhost:5000/api/auth/reset-password', {
-        email,
-        code: otp.join(''),
-        newPassword
-      });
-      setStep('success');
-    } catch (err) {
-      setError(err.response?.data?.error || 'Reset failed.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleChangeOtp = (index, value) => {
-    if (value.length > 1) value = value[value.length - 1];
-    if (!/^\d*$/.test(value)) return;
-    const newOtp = [...otp];
-    newOtp[index] = value;
-    setOtp(newOtp);
-    if (value && index < 5) document.getElementById(`otp-${index + 1}`).focus();
-  };
-
-  if (step === 'success') {
+  // ✅ Success screen — email sent
+  if (sent) {
     return (
-      <AuthLayout subtitle="Reset Complete">
-        <div className="text-center space-y-8 py-10">
-          <div className="w-24 h-24 bg-hero-accent/10 rounded-full flex items-center justify-center mx-auto text-hero-accent animate-pulse">
-            <ShieldCheck size={48} />
+      <AuthLayout subtitle="Password Recovery">
+        <div className="text-center space-y-8 py-4">
+          {/* Icon */}
+          <div className="w-24 h-24 bg-hero-accent/10 border-2 border-hero-accent/30 rounded-full flex items-center justify-center mx-auto">
+            <MailCheck size={44} className="text-hero-accent" />
           </div>
-          <div className="space-y-4">
-            <h2 className="text-3xl font-bold text-white">Authority Restored</h2>
-            <p className="text-white/50 text-lg">Your access credentials have been successfully updated.</p>
+
+          {/* Message */}
+          <div className="space-y-3">
+            <h2 className="text-3xl font-bold text-white">Check Your Email</h2>
+            <p className="text-white/50 text-base leading-relaxed">
+              We've sent a password reset link to:
+            </p>
+            <p className="text-hero-accent font-bold text-lg break-all">{email}</p>
+            <p className="text-white/40 text-sm leading-relaxed">
+              Click the link in that email to set a new password. The link expires in 1 hour.
+            </p>
           </div>
-          <button onClick={onBack} className="w-full bg-hero-accent text-agri-green font-bold py-4 rounded-2xl">
-            Go to Sign In
-          </button>
+
+          {/* Actions */}
+          <div className="space-y-3">
+            <button
+              onClick={() => { setSent(false); setEmail(''); }}
+              className="w-full bg-white/10 hover:bg-white/15 text-white/70 font-semibold py-4 rounded-2xl transition-all text-sm"
+            >
+              Use a Different Email
+            </button>
+            <button
+              onClick={onBack}
+              className="w-full bg-hero-accent text-agri-green font-bold py-5 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_0_24px_rgba(255,179,0,0.3)] flex items-center justify-center gap-2"
+            >
+              <ShieldCheck size={20} />
+              Back to Sign In
+            </button>
+          </div>
         </div>
       </AuthLayout>
     );
   }
 
+  // 📧 Request form
   return (
-    <AuthLayout subtitle="Identity Recovery">
-      <div className="space-y-8">
+    <AuthLayout subtitle="Password Recovery">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Header */}
         <div className="flex items-center gap-4">
-          <button onClick={onBack} className="text-white/40 hover:text-white transition-colors">
-            <ArrowLeft size={24} />
+          <button
+            type="button"
+            onClick={onBack}
+            className="text-white/40 hover:text-white transition-colors p-2 rounded-xl hover:bg-white/10"
+          >
+            <ArrowLeft size={22} />
           </button>
-          <h2 className="text-3xl font-bold text-white">
-            {step === 'request' ? 'Forgot Access Key?' : step === 'verify' ? 'Neural Verification' : 'Update Credentials'}
-          </h2>
+          <div>
+            <h2 className="text-3xl font-bold text-white">Forgot Password?</h2>
+            <p className="text-white/40 text-sm mt-0.5">We'll send a reset link to your email</p>
+          </div>
         </div>
 
+        {/* Error */}
         {error && (
-          <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-6 py-4 rounded-2xl text-sm">
-            {error}
+          <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-5 py-4 rounded-2xl text-sm flex items-start gap-3">
+            <AlertCircle size={18} className="mt-0.5 shrink-0" />
+            <span>{error}</span>
           </div>
         )}
 
-        {step === 'request' && (
-          <form onSubmit={handleRequestOtp} className="space-y-8">
-            <p className="text-white/50 text-lg">Enter your official email to receive a recovery code.</p>
-            <div className="relative">
-              <Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-white/30" size={20} />
-              <input
-                type="email"
-                placeholder="Official Email"
-                className="glass-input w-full pl-14"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <button disabled={loading} className="w-full bg-hero-accent text-agri-green font-bold py-5 rounded-2xl">
-              {loading ? <Loader2 className="animate-spin mx-auto" /> : 'Send Recovery Code'}
-            </button>
-          </form>
-        )}
+        {/* Email field */}
+        <div className="space-y-2">
+          <p className="text-white/50 text-base">Enter your official email address and we'll send you a secure link to reset your password.</p>
+          <div className="relative mt-4">
+            <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-white/30" size={18} />
+            <input
+              type="email"
+              placeholder="Official Email Address"
+              className="glass-input w-full pl-12 pr-5"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoFocus
+            />
+          </div>
+        </div>
 
-        {step === 'verify' && (
-          <form onSubmit={handleVerifyOtp} className="space-y-8">
-            <p className="text-white/50 text-lg">Enter the 6-digit code sent to your email.</p>
-            <div className="flex justify-between gap-3">
-              {otp.map((digit, i) => (
-                <input
-                  key={i}
-                  id={`otp-${i}`}
-                  type="text"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handleChangeOtp(i, e.target.value)}
-                  className="w-full aspect-square text-center text-3xl font-bold glass-input !px-0"
-                  required
-                />
-              ))}
-            </div>
-            <button disabled={otp.some(d => !d)} className="w-full bg-hero-accent text-agri-green font-bold py-5 rounded-2xl">
-              Verify Code
-            </button>
-          </form>
-        )}
+        {/* Submit */}
+        <button
+          type="submit"
+          disabled={loading || !email}
+          className={`w-full font-bold text-lg py-5 rounded-2xl transition-all flex items-center justify-center gap-3 ${
+            email
+              ? 'bg-hero-accent text-agri-green shadow-[0_0_24px_rgba(255,179,0,0.35)] hover:scale-[1.02] active:scale-[0.98]'
+              : 'bg-white/10 text-white/30 cursor-not-allowed'
+          }`}
+        >
+          {loading ? (
+            <Loader2 className="animate-spin" size={22} />
+          ) : (
+            <>
+              <MailCheck size={20} />
+              Send Reset Link
+            </>
+          )}
+        </button>
 
-        {step === 'reset' && (
-          <form onSubmit={handleResetPassword} className="space-y-6">
-            <p className="text-white/50 text-lg">Set a new secure access key for your authority account.</p>
-            <div className="relative">
-              <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-white/30" size={20} />
-              <input
-                type="password"
-                placeholder="New Access Key"
-                className="glass-input w-full pl-14"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                required
-              />
-            </div>
-            <div className="relative">
-              <ShieldCheck className="absolute left-6 top-1/2 -translate-y-1/2 text-white/30" size={20} />
-              <input
-                type="password"
-                placeholder="Confirm Key"
-                className="glass-input w-full pl-14"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-              />
-            </div>
-            <button disabled={loading} className="w-full bg-hero-accent text-agri-green font-bold py-5 rounded-2xl">
-              {loading ? <Loader2 className="animate-spin mx-auto" /> : 'Update Access Key'}
-            </button>
-          </form>
-        )}
-      </div>
+        {/* Back link */}
+        <div className="text-center">
+          <button
+            type="button"
+            onClick={onBack}
+            className="text-white/30 hover:text-white/60 transition-colors text-sm"
+          >
+            Remember your password? Sign In
+          </button>
+        </div>
+      </form>
     </AuthLayout>
   );
 };

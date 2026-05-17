@@ -4,7 +4,12 @@ import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.POST
 
+import retrofit2.http.Header
+
 interface AuthApi {
+    @POST("auth/verify-token")
+    suspend fun verifyToken(@Header("Authorization") authHeader: String): Response<AuthResponse>
+
     @POST("auth/phone-signup")
     suspend fun phoneSignup(@Body request: PhoneSignupRequest): Response<OtpResponse>
 
@@ -40,10 +45,10 @@ data class AuthResponse(val token: String, val user: FarmerDto)
 
 data class FarmerDto(
     val id: String, 
-    val name: String, 
-    val phone: String, 
-    val role: String, 
-    val language: String,
+    val name: String? = null, 
+    val phone: String? = null, 
+    val role: String? = null, 
+    val language: String? = null,
     val isProfileComplete: Boolean? = false,
     val district: String? = null,
     val farmSize: Double? = null,

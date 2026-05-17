@@ -114,19 +114,24 @@ fun WelcomeScreen(onNavigateForward: () -> Unit) {
                 verticalArrangement = Arrangement.Center
             ) {
                 // New Premium Text Logo
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
                     AgriSenseLogo(
-                        size = 48.dp,
+                        size = 44.dp,
                         tint = PremiumGold
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
                     Text(
                         text = "AGRI-SENSE",
-                        style = MaterialTheme.typography.displayMedium.copy(
-                            fontWeight = FontWeight.Black,
-                            color = Color.White,
-                            letterSpacing = 4.sp
-                        )
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color.White,
+                        letterSpacing = 2.sp,
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
                 
@@ -199,10 +204,10 @@ fun WelcomeScreen(onNavigateForward: () -> Unit) {
             )
             Spacer(modifier = Modifier.height(16.dp))
             
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                PremiumGoalCard(title = "Zero\nHunger", icon = Icons.Filled.Restaurant, modifier = Modifier.weight(1f))
-                PremiumGoalCard(title = "Max\nProsperity", icon = Icons.AutoMirrored.Filled.TrendingUp, modifier = Modifier.weight(1f))
-                PremiumGoalCard(title = "True\nSustainability", icon = Icons.Filled.FilterVintage, modifier = Modifier.weight(1f))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                PremiumGoalCard(title = "Zero Hunger", icon = Icons.Filled.Restaurant, modifier = Modifier.weight(1f))
+                PremiumGoalCard(title = "Max Prosperity", icon = Icons.AutoMirrored.Filled.TrendingUp, modifier = Modifier.weight(1f))
+                PremiumGoalCard(title = "True Sustainability", icon = Icons.Filled.FilterVintage, modifier = Modifier.weight(1f))
             }
 
             Spacer(modifier = Modifier.height(48.dp))
@@ -286,24 +291,31 @@ fun WelcomeScreen(onNavigateForward: () -> Unit) {
             Spacer(modifier = Modifier.height(56.dp))
 
             // PREMIUM CTA
-            Button(
+                Button(
                 onClick = onNavigateForward,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(64.dp)
                     .shadow(16.dp, RoundedCornerShape(32.dp), spotColor = AgriGreenScreenBg),
-                colors = ButtonDefaults.buttonColors(containerColor = PremiumDarkGreen),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PremiumDarkGreen,
+                    contentColor = Color.White
+                ),
                 shape = RoundedCornerShape(32.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         "Get Started",
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp,
+                            color = Color.White
+                        ),
                         maxLines = 1,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
                     Spacer(modifier = Modifier.width(12.dp))
-                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color.White)
                 }
             }
             
@@ -315,33 +327,36 @@ fun WelcomeScreen(onNavigateForward: () -> Unit) {
 @Composable
 fun PremiumGoalCard(title: String, icon: ImageVector, modifier: Modifier = Modifier) {
     Card(
-        modifier = modifier.aspectRatio(0.85f),
+        modifier = modifier.height(130.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = RoundedCornerShape(20.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(12.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 8.dp, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             Surface(
                 color = PremiumDarkGreen.copy(alpha = 0.05f),
                 shape = CircleShape,
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier.size(40.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(icon, contentDescription = null, tint = PremiumDarkGreen, modifier = Modifier.size(24.dp))
+                    Icon(icon, contentDescription = null, tint = PremiumDarkGreen, modifier = Modifier.size(20.dp))
                 }
             }
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = title, 
-                fontSize = 13.sp, 
-                fontWeight = FontWeight.Bold, 
+                text = title,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
                 color = Color.DarkGray,
-                lineHeight = 16.sp
+                lineHeight = 15.sp,
+                softWrap = true
             )
         }
     }

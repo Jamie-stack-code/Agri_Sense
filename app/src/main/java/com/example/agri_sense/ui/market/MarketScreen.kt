@@ -405,25 +405,44 @@ fun PremiumPriceCard(emoji: String, crop: String, type: String, price: String, t
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Surface(
                         color = PremiumDarkGreen.copy(alpha = 0.05f),
                         shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier.size(56.dp)
+                        modifier = Modifier.size(48.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
-                            Text(emoji, fontSize = 28.sp)
+                            Text(emoji, fontSize = 24.sp)
                         }
                     }
-                    Spacer(modifier = Modifier.width(16.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
                     Column {
-                        Text(crop, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = PremiumDarkGreen)
-                        Text(type, color = OnSurfaceMedium, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                        Text(
+                            text = crop, 
+                            fontWeight = FontWeight.ExtraBold, 
+                            fontSize = 18.sp, 
+                            color = PremiumDarkGreen,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = type, 
+                            color = OnSurfaceMedium, 
+                            fontSize = 13.sp, 
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
                     }
                 }
                 
+                Spacer(modifier = Modifier.width(16.dp))
+
                 // Animated Trending Indicator
                 val infiniteTransition = rememberInfiniteTransition(label = "pulse")
                 val scale by infiniteTransition.animateFloat(
@@ -437,12 +456,12 @@ fun PremiumPriceCard(emoji: String, crop: String, type: String, price: String, t
                 )
                 
                 Column(horizontalAlignment = Alignment.End) {
-                    Text("Best Price", color = OnSurfaceMedium, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                    Text(price, fontWeight = FontWeight.Black, fontSize = 24.sp, color = PremiumDarkGreen)
+                    Text("Best Price", color = OnSurfaceMedium, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    Text(price, fontWeight = FontWeight.Black, fontSize = 20.sp, color = PremiumDarkGreen)
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, tint = PremiumGold, modifier = Modifier.size(16.dp).scale(scale))
+                        Icon(Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, tint = PremiumGold, modifier = Modifier.size(14.dp).scale(scale))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(trend, color = PremiumGold, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        Text(trend, color = PremiumGold, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }

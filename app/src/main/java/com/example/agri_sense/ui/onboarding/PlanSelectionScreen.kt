@@ -11,6 +11,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -24,11 +26,13 @@ fun PlanSelectionScreen(
     onPlanSelected: (Boolean) -> Unit,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
+    val scrollState = rememberScrollState()
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(SurfaceLight)
-            .padding(24.dp),
+            .verticalScroll(scrollState)
+            .padding(horizontal = 24.dp, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -36,10 +40,10 @@ fun PlanSelectionScreen(
             fontSize = 28.sp,
             fontWeight = FontWeight.Black,
             color = PremiumDarkGreen,
-            modifier = Modifier.padding(top = 48.dp)
+            modifier = Modifier.padding(top = 24.dp)
         )
         
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         PlanCard(
             title = "Free Trial",
@@ -64,6 +68,7 @@ fun PlanSelectionScreen(
                 onPlanSelected(true) 
             }
         )
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 

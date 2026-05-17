@@ -82,108 +82,116 @@ fun AppNavigation() {
             }
 
             composable("sign_up") {
-            SignUpScreen(
-                language = selectedLanguage,
-                onSignUpSuccess = { phone ->
-                    navController.navigate("otp_verification?phone=$phone")
-                },
-                onNavigateToSignIn = { navController.navigate("sign_in") }
-            )
-        }
+                SignUpScreen(
+                    language = selectedLanguage,
+                    onSignUpSuccess = { phone ->
+                        navController.navigate("otp_verification?phone=$phone")
+                    },
+                    onNavigateToSignIn = { navController.navigate("sign_in") },
+                    viewModel = authViewModel
+                )
+            }
 
-        composable("sign_in") {
-            SignInScreen(
-                onSignInSuccess = { isComplete ->
-                    if (isComplete) {
+            composable("sign_in") {
+                SignInScreen(
+                    onSignInSuccess = { isComplete ->
+                        if (isComplete) {
+                            navController.navigate("home") {
+                                popUpTo("welcome") { inclusive = true }
+                            }
+                        } else {
+                            navController.navigate("profile_setup") {
+                                popUpTo("welcome") { inclusive = true }
+                            }
+                        }
+                    },
+                    onNavigateToSignUp = { navController.navigate("sign_up") },
+                    onNavigateToForgotPassword = { navController.navigate("forgot_password") },
+                    language = selectedLanguage,
+                    viewModel = authViewModel
+                )
+            }
+
+            composable("forgot_password") {
+                ForgotPasswordScreen(
+                    onOtpSent = { phone ->
+                        navController.navigate("reset_password?phone=$phone")
+                    },
+                    onBack = { navController.popBackStack() },
+                    language = selectedLanguage,
+                    viewModel = authViewModel
+                )
+            }
+
+            composable(
+                "reset_password?phone={phone}",
+                arguments = listOf(navArgument("phone") { defaultValue = "" })
+            ) { backStackEntry ->
+                val phone = backStackEntry.arguments?.getString("phone") ?: ""
+                ResetPasswordScreen(
+                    phone = phone,
+                    onResetSuccess = {
+                        navController.navigate("sign_in") {
+                            popUpTo("sign_in") { inclusive = true }
+                        }
+                    },
+                    onBack = { navController.popBackStack() },
+                    language = selectedLanguage,
+                    viewModel = authViewModel
+                )
+            }
+
+            composable(
+                "otp_verification?phone={phone}",
+                arguments = listOf(navArgument("phone") { defaultValue = "" })
+            ) { backStackEntry ->
+                val phone = backStackEntry.arguments?.getString("phone") ?: ""
+                OtpVerificationScreen(
+                    phone = phone,
+                    onVerifySuccess = {
+                        navController.navigate("plan_selection")
+                    },
+                    onBack = { navController.popBackStack() },
+                    viewModel = authViewModel
+                )
+            }
+
+            composable("plan_selection") {
+                PlanSelectionScreen(
+                    onPlanSelected = { isPremium ->
+                        if (isPremium) {
+                            navController.navigate("payment")
+                        } else {
+                            navController.navigate("profile_setup") {
+                                popUpTo("welcome") { inclusive = true }
+                            }
+                        }
+                    },
+                    viewModel = authViewModel
+                )
+            }
+
+            composable("payment") {
+                PaymentVerificationScreen(
+                    onPaymentSuccess = {
+                        navController.navigate("profile_setup") {
+                            popUpTo("welcome") { inclusive = true }
+                        }
+                    },
+                    viewModel = authViewModel
+                )
+            }
+
+            composable("profile_setup") {
+                com.example.agri_sense.ui.onboarding.ProfileSetupScreen(
+                    onSetupComplete = {
                         navController.navigate("home") {
-                            popUpTo("welcome") { inclusive = true }
+                            popUpTo("profile_setup") { inclusive = true }
                         }
-                    } else {
-                        navController.navigate("profile_setup") {
-                            popUpTo("welcome") { inclusive = true }
-                        }
-                    }
-                },
-                onNavigateToSignUp = { navController.navigate("sign_up") },
-                onNavigateToForgotPassword = { navController.navigate("forgot_password") },
-                language = selectedLanguage
-            )
-        }
-
-        composable("forgot_password") {
-            ForgotPasswordScreen(
-                onOtpSent = { phone ->
-                    navController.navigate("reset_password?phone=$phone")
-                },
-                onBack = { navController.popBackStack() },
-                language = selectedLanguage
-            )
-        }
-
-        composable(
-            "reset_password?phone={phone}",
-            arguments = listOf(navArgument("phone") { defaultValue = "" })
-        ) { backStackEntry ->
-            val phone = backStackEntry.arguments?.getString("phone") ?: ""
-            ResetPasswordScreen(
-                phone = phone,
-                onResetSuccess = {
-                    navController.navigate("sign_in") {
-                        popUpTo("sign_in") { inclusive = true }
-                    }
-                },
-                onBack = { navController.popBackStack() },
-                language = selectedLanguage
-            )
-        }
-
-        composable(
-            "otp_verification?phone={phone}",
-            arguments = listOf(navArgument("phone") { defaultValue = "" })
-        ) { backStackEntry ->
-            val phone = backStackEntry.arguments?.getString("phone") ?: ""
-            OtpVerificationScreen(
-                phone = phone,
-                onVerifySuccess = {
-                    navController.navigate("plan_selection")
-                },
-                onBack = { navController.popBackStack() }
-            )
-        }
-
-        composable("plan_selection") {
-            PlanSelectionScreen(
-                onPlanSelected = { isPremium ->
-                    if (isPremium) {
-                        navController.navigate("payment")
-                    } else {
-                        navController.navigate("profile_setup") {
-                            popUpTo("welcome") { inclusive = true }
-                        }
-                    }
-                }
-            )
-        }
-
-        composable("payment") {
-            PaymentVerificationScreen(
-                onPaymentSuccess = {
-                    navController.navigate("profile_setup") {
-                        popUpTo("welcome") { inclusive = true }
-                    }
-                }
-            )
-        }
-
-        composable("profile_setup") {
-            com.example.agri_sense.ui.onboarding.ProfileSetupScreen(
-                onSetupComplete = {
-                    navController.navigate("home") {
-                        popUpTo("profile_setup") { inclusive = true }
-                    }
-                }
-            )
-        }
+                    },
+                    authViewModel = authViewModel
+                )
+            }
 
         // ── Main Screens ─────────────────────────────────────────────────────────
         composable("home") {

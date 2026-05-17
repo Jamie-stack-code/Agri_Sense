@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "245402854299",
+    "project_id": "agri-sense-bfbdb",
+    "storage_bucket": "agri-sense-bfbdb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:245402854299:android:cad7537c0c70eb625df73e",
+        "android_client_info": {
+          "package_name": "com.example.agri_sense"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBfFUFRN2lRuIHxuuiMsPBXqIGRFoOQCQA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

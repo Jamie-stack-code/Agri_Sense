@@ -28,8 +28,10 @@ import com.example.agri_sense.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileSetupScreen(onSetupComplete: () -> Unit) {
-    val authViewModel: AuthViewModel = hiltViewModel()
+fun ProfileSetupScreen(
+    onSetupComplete: () -> Unit,
+    authViewModel: AuthViewModel = hiltViewModel()
+) {
     var name by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
     var locationExpanded by remember { mutableStateOf(false) }
